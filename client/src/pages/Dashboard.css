@@ -1,0 +1,354 @@
+/* ═══════════════════════════════════════════════
+   Dashboard shared layout styles
+   ═══════════════════════════════════════════════ */
+@import url("https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap");
+
+.dash-layout {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  min-height: 100dvh;
+}
+
+/* ── Sidebar ───────────────────────────────────── */
+.dash-sidebar {
+  background: var(--bg-surface);
+  border-right: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  padding: 1.5rem 1rem;
+  gap: 1.5rem;
+  position: sticky;
+  top: 0;
+  height: 100dvh;
+  overflow-y: auto;
+}
+
+.dash-logo {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0 0.5rem;
+}
+
+.dash-logo-text {
+  font-weight: 700;
+  font-size: 1rem;
+  letter-spacing: -0.01em;
+}
+
+/* ── Nav ───────────────────────────────────────── */
+.dash-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1;
+}
+
+.dash-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.625rem 0.875rem;
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all var(--transition-fast);
+  text-decoration: none;
+}
+
+.dash-nav-item:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.dash-nav-item.active {
+  background: rgba(59, 130, 246, 0.12);
+  color: var(--brand-400);
+}
+
+/* ── User section ─────────────────────────────── */
+.dash-user {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.875rem;
+  background: var(--bg-elevated);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+}
+
+.dash-user-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(135deg, var(--brand-600), var(--brand-400));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.agent-avatar {
+  background: linear-gradient(135deg, var(--accent-600), var(--accent-400));
+}
+.admin-avatar {
+  background: linear-gradient(135deg, #d97706, #f59e0b);
+}
+
+.dash-user-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.dash-user-name {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dash-user-role {
+  font-size: 0.7rem;
+}
+
+.dash-logout-btn {
+  background: none;
+  color: var(--text-muted);
+  font-size: 1rem;
+  padding: 0.25rem;
+  border-radius: var(--radius-sm);
+  transition: color var(--transition-fast);
+  flex-shrink: 0;
+}
+.dash-logout-btn:hover {
+  color: var(--error);
+}
+
+/* ── Main ─────────────────────────────────────── */
+.dash-main {
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  background: var(--bg-base);
+}
+
+/* ── Hero card ────────────────────────────────── */
+.dash-hero {
+  background: linear-gradient(
+    135deg,
+    rgba(59, 130, 246, 0.08),
+    rgba(139, 92, 246, 0.06)
+  );
+  border-color: rgba(59, 130, 246, 0.2);
+}
+
+/* ── Stats row ────────────────────────────────── */
+.dash-stats-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 1rem;
+}
+
+.dash-stat-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  padding: 1.5rem 1rem;
+  text-align: center;
+}
+
+.dash-stat-icon {
+  font-size: 1.5rem;
+}
+.dash-stat-value {
+  font-size: 1.75rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+/* ── Coming soon ──────────────────────────────── */
+.dash-coming-soon {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 0.75rem;
+  padding: 3rem;
+  border: 1px dashed var(--border-default);
+  background: transparent;
+}
+
+.coming-soon-icon { font-size: 2.5rem; }
+
+/* ── Page header ──────────────────────────────── */
+.dash-page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* ── Filter tabs ──────────────────────────────── */
+.dash-filter-tabs {
+  display: flex;
+  gap: .375rem;
+  flex-wrap: wrap;
+}
+
+.dash-filter-tab {
+  padding: .375rem .875rem;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-default);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: .8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.dash-filter-tab:hover {
+  border-color: var(--brand-500);
+  color: var(--text-primary);
+}
+
+.dash-filter-tab.active {
+  background: rgba(59,130,246,.15);
+  border-color: var(--brand-500);
+  color: var(--brand-400);
+}
+
+/* ── Ticket list ──────────────────────────────── */
+.ticket-list {
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+}
+
+.ticket-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: .875rem 1rem;
+  border-radius: var(--radius-md);
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+  cursor: default;
+}
+
+.ticket-row:hover {
+  border-color: var(--border-default);
+  background: var(--bg-elevated);
+}
+
+.ticket-row-left {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  min-width: 0;
+}
+
+.ticket-row-right {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  flex-shrink: 0;
+}
+
+.ticket-subject {
+  font-size: .9rem;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 340px;
+}
+
+/* ── Agent status panel ───────────────────────── */
+.agent-status-panel {
+  padding: .875rem;
+}
+
+.agent-status-btn {
+  display: flex;
+  align-items: center;
+  gap: .625rem;
+  width: 100%;
+  padding: .5rem .75rem;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: .8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.agent-status-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.agent-status-btn.active {
+  background: var(--bg-elevated);
+  border-color: var(--border-default);
+  color: var(--text-primary);
+}
+
+.status-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--dot-color, var(--text-muted));
+  flex-shrink: 0;
+}
+
+/* ── Agent roster ─────────────────────────────── */
+.agent-roster {
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+}
+
+.agent-row {
+  display: flex;
+  align-items: center;
+  gap: .875rem;
+  padding: .75rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-elevated);
+}
+
+/* ── Queue / match banners ────────────────────────────────────────────────── */
+.queue-banner {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(251, 191, 36, .35);
+  background: rgba(251, 191, 36, .08);
+  color: var(--text-primary);
+}
+
+.queue-banner-matched {
+  border-color: rgba(16, 185, 129, .4);
+  background: rgba(16, 185, 129, .08);
+}
+
+.queue-banner-icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}

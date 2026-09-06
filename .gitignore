@@ -1,0 +1,26 @@
+node_modules/
+**/node_modules/
+
+# Local configuration and secrets
+.env*
+!.env.example
+!.env.*.example
+
+# Build and test output
+dist/
+**/dist/
+coverage/
+
+# Local runtime data and logs
+*.log
+*_logs.txt
+*.sqlite
+*.sqlite3
+*.db
+*.bak
+.neon
+.neon/
+
+# Scratch files and OS metadata
+scratch-*.js
+.DS_Store
