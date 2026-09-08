@@ -49,10 +49,8 @@ export const config = {
   },
 
   email: {
-    host: optional('SMTP_HOST', 'smtp.ethereal.email'),
-    port: parseInt(optional('SMTP_PORT', '587'), 10),
-    user: optional('SMTP_USER', ''),
-    pass: optional('SMTP_PASS', ''),
-    from: optional('EMAIL_FROM', 'support@queuedesk.local'),
+    resendApiKey: required('RESEND_API_KEY'),
+    from: optional('EMAIL_FROM', 'QueueDesk <onboarding@resend.dev>'),
+    adminEmail: optional('ADMIN_EMAIL', ''),
   },
 };

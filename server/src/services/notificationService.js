@@ -1,5 +1,6 @@
 import { notificationQueue } from '../workers/notificationWorker.js';
 import { query } from '../config/db.js';
+import { config } from '../config/index.js';
 import { 
   templateTicketAssigned, 
   templateTicketClosed, 
@@ -131,15 +132,20 @@ export const sendTicketEscalated = async (ticketId) => {
   const ticket = await getFullTicket(ticketId);
   if (!ticket) return;
 
+  const adminEmail = config.email.adminEmail;
+  if (!adminEmail) {
+    console.warn('[NotificationService] ADMIN_EMAIL not set — skipping SLA escalation email');
+    return;
+  }
+
   const template = templateTicketEscalated({
     agentName: ticket.agent_name,
     ticketSubject: ticket.subject,
-    adminEmail: 'admin@queuedesk.local' // Hardcoded admin for dev
+    adminEmail,
   });
 
-  // Since we don't have a single admin ID easily queryable here, we'll fake the enqueue for 'admin@queuedesk.local'
   await notificationQueue.add('email', {
-    to: 'admin@queuedesk.local',
+    to: adminEmail,
     subject: template.subject,
     text: template.text,
     html: template.html,

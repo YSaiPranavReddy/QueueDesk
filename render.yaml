@@ -28,6 +28,12 @@ services:
         generateValue: true
       - key: CORS_ORIGINS
         sync: false   # Set to your Vercel frontend URL after deploying
+      - key: RESEND_API_KEY
+        sync: false   # Your Resend API key from resend.com
+      - key: EMAIL_FROM
+        value: "QueueDesk <onboarding@resend.dev>"
+      - key: ADMIN_EMAIL
+        sync: false   # Your email — receives SLA escalation alerts
       - key: SLA_ESCALATION_MINUTES
         value: "10"
       - key: AUTO_CLOSE_MINUTES

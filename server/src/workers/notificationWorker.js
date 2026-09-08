@@ -1,5 +1,5 @@
 import { Queue, Worker } from 'bullmq';
-import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 import { createRedisClient } from '../config/redis.js';
 import { config } from '../config/index.js';
 import { logger } from '../utils/logger.js';
@@ -9,35 +9,30 @@ const connection = createRedisClient();
 
 export const notificationQueue = new Queue('notifications', { connection });
 
-// Configure Nodemailer with Ethereal (or SendGrid in prod)
-const transporter = nodemailer.createTransport({
-  host: config.email.host,
-  port: config.email.port,
-  auth: config.email.user ? {
-    user: config.email.user,
-    pass: config.email.pass,
-  } : undefined,
-});
+// Resend client — initialised once, reused for all email sends
+const resend = new Resend(config.email.resendApiKey);
 
 export const notificationWorker = new Worker('notifications', async (job) => {
   if (job.name === 'email') {
     const endTimer = emailDeliveryLatencySeconds.startTimer();
     const { to, subject, html, text } = job.data;
-    
-    logger.info({ to, subject }, `[Worker] Sending email`);
-    
-    const info = await transporter.sendMail({
-      from: config.email.from,
+
+    logger.info({ to, subject }, `[Worker] Sending email via Resend`);
+
+    const { data, error } = await resend.emails.send({
+      from: config.email.from,   // e.g. "QueueDesk <onboarding@resend.dev>"
       to,
       subject,
-      text,
       html,
+      text,
     });
-    
-    if (config.email.host === 'smtp.ethereal.email') {
-      logger.info({ url: nodemailer.getTestMessageUrl(info) }, `[Worker] Preview URL generated`);
+
+    if (error) {
+      // Throw so BullMQ treats it as a failed job and retries
+      throw new Error(`Resend error: ${error.message}`);
     }
-    
+
+    logger.info({ emailId: data?.id, to, subject }, `[Worker] Email delivered via Resend`);
     endTimer();
   }
 }, { connection });
@@ -46,8 +41,8 @@ notificationWorker.on('failed', async (job, err) => {
   if (job.attemptsMade >= job.opts.attempts) {
     logger.error({ err, jobId: job.id, attempts: job.attemptsMade }, `[DEAD LETTER] Notification job failed permanently`);
     notificationDeadLetterTotal.inc();
-    
-    // M10.T5: Log permanently failed notifications to DB (Forensic tracking)
+
+    // Log permanently failed notifications to DB (forensic tracking)
     try {
       const { query } = await import('../config/db.js');
       await query(
@@ -70,3 +65,4 @@ notificationWorker.on('failed', async (job, err) => {
     logger.warn({ err, jobId: job.id, attempts: job.attemptsMade }, `[Worker] Notification job failed, will retry`);
   }
 });
+
