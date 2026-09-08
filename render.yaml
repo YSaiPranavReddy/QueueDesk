@@ -1,0 +1,36 @@
+# render.yaml — Render Blueprint for QueueDesk
+# This file lets Render auto-configure your service from the dashboard.
+# Docs: https://render.com/docs/blueprint-spec
+
+services:
+  - type: web
+    name: queuedesk-server
+    runtime: node
+    region: oregon
+    plan: free
+    rootDir: server
+    buildCommand: npm install
+    startCommand: node src/index.js
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # Render sets PORT automatically — do not override it
+      - key: DATABASE_URL
+        sync: false   # You will set this in Render dashboard
+      - key: REDIS_URL
+        sync: false   # You will set this in Render dashboard (Upstash URL)
+      - key: JWT_ACCESS_SECRET
+        generateValue: true   # Render generates a secure random value
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: COOKIE_SECRET
+        generateValue: true
+      - key: CORS_ORIGINS
+        sync: false   # Set to your Vercel frontend URL after deploying
+      - key: SLA_ESCALATION_MINUTES
+        value: "10"
+      - key: AUTO_CLOSE_MINUTES
+        value: "30"
+      - key: TRANSCRIPT_FLUSH_INTERVAL_MS
+        value: "30000"
