@@ -33,7 +33,11 @@ const server = http.createServer(app);
 app.use(helmet());
 app.use(
   cors({
-    origin: config.cors.origins,
+    // If origins is ['*'], the cors package won't treat it as a wildcard.
+    // We must pass the string '*' directly, not inside an array.
+    origin: config.cors.origins.length === 1 && config.cors.origins[0] === '*'
+      ? '*'
+      : config.cors.origins,
     credentials: true, // Allow cookies (refresh token)
   })
 );
