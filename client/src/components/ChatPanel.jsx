@@ -160,12 +160,14 @@ export default function ChatPanel({ ticketId, socket, currentUserId, currentUser
     <div className="chat-panel">
       {/* Header */}
       <div className="chat-header">
-        <div className="chat-header-dot" style={{ backgroundColor: isClosed ? 'var(--text-muted)' : partnerStatus === 'offline' ? 'var(--warning)' : 'var(--success)' }} />
+        <div className={`chat-header-dot ${isClosed ? 'closed' : partnerStatus === 'offline' ? 'offline' : 'online'}`} />
         <span className="chat-header-title">
-          {isClosed ? 'Archived Support Chat' : 'Live Support Chat'}
-          {partnerStatus === 'offline' && !isClosed && <span className="text-muted" style={{ marginLeft: 8, fontSize: '0.85em' }}>Offline</span>}
+          {isClosed ? 'Archived Chat' : 'Live Support Chat'}
         </span>
-        <span className="text-muted text-xs">Ticket #{ticketId?.slice(0, 8)}</span>
+        <span className="chat-header-status">
+          {isClosed ? 'Closed' : partnerStatus === 'offline' ? '⚠ Offline' : '● Online'}
+        </span>
+        <span className="text-muted text-xs">#{ticketId?.slice(0, 8)}</span>
       </div>
 
       {/* Message list */}
@@ -182,6 +184,16 @@ export default function ChatPanel({ ticketId, socket, currentUserId, currentUser
         ) : (
           messages.map((m) => {
             const isMe = m.sender_id === currentUserId;
+            const isSystem = m.sender_role === 'system';
+            if (isSystem) {
+              return (
+                <div key={m.id} className="chat-msg chat-msg-system">
+                  <div className="chat-bubble">
+                    <span className="chat-bubble-body">{m.body}</span>
+                  </div>
+                </div>
+              );
+            }
             return (
               <div key={m.id} className={`chat-msg ${isMe ? 'chat-msg-mine' : 'chat-msg-theirs'}`}>
                 {!isMe && (
