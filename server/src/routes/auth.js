@@ -62,7 +62,7 @@ const issueRefreshToken = async (res, user) => {
   res.cookie('refreshToken', rawToken, {
     httpOnly: true,
     secure: config.isProd,
-    sameSite: 'lax',
+    sameSite: config.isProd ? 'none' : 'lax', // 'none' required for cross-origin (Vercel → Render)
     maxAge: 7 * 24 * 60 * 60 * 1000,
     path: '/api/auth', // Scoped — only sent to /api/auth routes
   });

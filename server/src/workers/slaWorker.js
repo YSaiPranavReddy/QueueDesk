@@ -58,18 +58,13 @@ export const slaWorker = new Worker('sla-escalation', async (job) => {
   }
 }, { connection });
 
-const IS_SCHEDULER = process.env.PORT === '3001';
-
-if (IS_SCHEDULER) {
-  // Schedule the repeatable cron job
-  // Runs every minute to sweep for breached SLAs
-  slaQueue.add('sla-check', {}, {
-    repeat: {
-      pattern: '* * * * *'
-    },
-    jobId: 'sla-check-cron'
-  });
-}
+// Always schedule — BullMQ's jobId makes this idempotent (safe across restarts)
+slaQueue.add('sla-check', {}, {
+  repeat: {
+    pattern: '* * * * *'
+  },
+  jobId: 'sla-check-cron'
+});
 
 slaWorker.on('failed', (job, err) => {
   logger.error({ err }, `[Worker] SLA job failed`);

@@ -45,9 +45,15 @@ export const getIo = () => {
  * @param {import('http').Server} httpServer
  */
 export const initSocket = async (httpServer) => {
+  // Socket.IO does NOT accept ['*'] as wildcard — must be the string '*'
+  const socketOrigin =
+    config.cors.origins.length === 1 && config.cors.origins[0] === '*'
+      ? '*'
+      : config.cors.origins;
+
   io = new Server(httpServer, {
     cors: {
-      origin: config.cors.origins,
+      origin: socketOrigin,
       credentials: true,
     },
     // Prefer WebSocket, fall back to polling

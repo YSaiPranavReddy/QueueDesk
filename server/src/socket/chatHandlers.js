@@ -70,10 +70,14 @@ export const registerChatHandlers = (socket, io) => {
       const partnerRole = role === 'agent' ? 'customer' : 'agent';
       const partnerSockets = await io.in(`${partnerRole}:${partnerId}`).fetchSockets();
       
+      // Emit correct event based on who is being queried (agent or customer)
+      const onlineEvent  = partnerRole === 'customer' ? 'customer:online'  : 'agent:online';
+      const offlineEvent = partnerRole === 'customer' ? 'customer:offline' : 'agent:offline';
+      
       if (partnerSockets.length > 0) {
-        socket.emit('customer:online', { ticketId });
+        socket.emit(onlineEvent,  { ticketId });
       } else {
-        socket.emit('customer:offline', { ticketId });
+        socket.emit(offlineEvent, { ticketId });
       }
     } catch (err) {
       console.error('[Chat] chat:status:request error:', err.message);

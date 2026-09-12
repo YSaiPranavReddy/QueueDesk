@@ -90,7 +90,9 @@ export default function ChatPanel({ ticketId, socket, currentUserId, currentUser
       setTimeout(() => setChatError(''), 5000);
     });
     socket.on('customer:offline', () => setPartnerStatus('offline'));
-    socket.on('customer:online', () => setPartnerStatus('online'));
+    socket.on('customer:online',  () => setPartnerStatus('online'));
+    socket.on('agent:offline',    () => setPartnerStatus('offline'));
+    socket.on('agent:online',     () => setPartnerStatus('online'));
 
     return () => {
       socket.off('chat:message', onMessage);
@@ -100,6 +102,8 @@ export default function ChatPanel({ ticketId, socket, currentUserId, currentUser
       socket.off('chat:error');
       socket.off('customer:offline');
       socket.off('customer:online');
+      socket.off('agent:offline');
+      socket.off('agent:online');
       clearTimeout(typingTimer.current);
     };
   }, [socket, ticketId, currentUserRole]);

@@ -78,14 +78,14 @@ export default function CustomerDashboard() {
         }));
       }
     });
-    socket.on('ticket:closed', () => {
-      fetchTickets();
-    });
+    socket.on('ticket:closed',  () => fetchTickets());
+    socket.on('ticket:on_hold', () => fetchTickets()); // bug fix: refresh when agent puts ticket on hold
     return () => {
       socket.off('queue:position');
       socket.off('ticket:matched');
       socket.off('chat:message');
       socket.off('ticket:closed');
+      socket.off('ticket:on_hold');
     };
   }, [socket, fetchTickets, activeTicketId, activeTab]);
 
