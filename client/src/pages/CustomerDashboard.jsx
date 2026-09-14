@@ -35,7 +35,7 @@ export default function CustomerDashboard() {
 
   const myActiveTickets    = tickets.filter(t => t.status !== 'closed' && t.status !== 'pending');
   const myCompletedTickets = tickets.filter(t => t.status === 'closed');
-  const totalUnread        = Object.values(unreadCounts).reduce((sum, c) => sum + c, 0);
+  const totalUnread        = Object.values(unreadCounts).filter(c => c > 0).length; // # of chats with unread msgs, not total msgs
 
   const { socket } = useSocket();
 

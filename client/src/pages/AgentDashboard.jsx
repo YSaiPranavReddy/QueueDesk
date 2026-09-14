@@ -147,7 +147,7 @@ export default function AgentDashboard() {
   const pending     = tickets.filter(t => t.status === 'pending').length;
   const myActive    = tickets.filter(t => t.agent_id === user?.id && t.status !== 'closed').length;
   const closed      = tickets.filter(t => t.status === 'closed').length;
-  const totalUnread = Object.values(unreadCounts).reduce((sum, c) => sum + c, 0);
+  const totalUnread = Object.values(unreadCounts).filter(c => c > 0).length; // # of chats with unread msgs, not total msgs
 
   /* ── Chat sidebar list builder ── */
   const ChatListItem = ({ t, isOnHold = false }) => {
