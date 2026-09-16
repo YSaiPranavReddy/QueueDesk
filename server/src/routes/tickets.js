@@ -366,4 +366,73 @@ router.patch('/:id/priority', requireRole('agent', 'admin'), async (req, res, ne
   }
 });
 
+/**
+ * @swagger
+ * /api/tickets/{id}/rate:
+ *   post:
+ *     summary: Rate a closed ticket
+ *     tags: [Tickets]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               score:
+ *                 type: integer
+ *                 minimum: 1
+ *                 maximum: 5
+ *               comment:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Rating saved
+ *       400:
+ *         description: Ticket not closed or already rated
+ *       403:
+ *         description: Not the customer of this ticket
+ */
+router.post('/:id/rate', async (req, res, next) => {
+  try {
+    const { score, comment } = req.body;
+    if (!score || score < 1 || score > 5) {
+      return next(createError(400, 'Score must be between 1 and 5'));
+    }
+
+    const ticket = await findTicketById(req.params.id);
+    if (!ticket) return next(createError(404, 'Ticket not found'));
+
+    if (ticket.customer_id !== req.user.id) {
+      return next(createError(403, 'Only the ticket owner can rate it'));
+    }
+
+    if (ticket.status !== 'closed') {
+      return next(createError(400, 'Only closed tickets can be rated'));
+    }
+
+    if (ticket.csat_score) {
+      return next(createError(400, 'Ticket is already rated'));
+    }
+
+    const { query } = await import('../config/db.js');
+    await query(
+      `UPDATE tickets SET csat_score = $1, csat_comment = $2 WHERE id = $3`,
+      [score, comment || null, ticket.id]
+    );
+
+    res.json({ success: true });
+  } catch (err) {
+    next(err);
+  }
+});
+
 export default router;

@@ -26,6 +26,9 @@ export default function CustomerDashboard() {
   const [form,     setForm]     = useState({ subject: '' });
   const [showForm, setShowForm] = useState(false);
   const [error,    setError]    = useState('');
+  
+  const [csatForm, setCsatForm] = useState({ score: 0, comment: '' });
+  const [csatSubmitting, setCsatSubmitting] = useState(false);
 
   const [queueInfo,     setQueueInfo]     = useState(null);
   const [matched,       setMatched]       = useState(null);
@@ -91,6 +94,21 @@ export default function CustomerDashboard() {
   const openChat = ticketId => {
     setActiveTicketId(ticketId);
     setUnreadCounts(prev => ({ ...prev, [ticketId]: 0 }));
+  };
+
+  const handleRate = async (e) => {
+    e.preventDefault();
+    if (csatForm.score < 1 || !activeTicketId) return;
+    setCsatSubmitting(true);
+    try {
+      await ticketApi.rate(activeTicketId, csatForm.score, csatForm.comment);
+      setTickets(prev => prev.map(t => t.id === activeTicketId ? { ...t, csat_score: csatForm.score, csat_comment: csatForm.comment } : t));
+      setCsatForm({ score: 0, comment: '' });
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setCsatSubmitting(false);
+    }
   };
 
   const handleSubmit = async e => {
@@ -394,6 +412,54 @@ export default function CustomerDashboard() {
                     </div>
                     <button className="btn btn-ghost btn-sm" onClick={() => setActiveTicketId(null)}>✕ Close</button>
                   </div>
+
+                  {tickets.find(t => t.id === activeTicketId)?.status === 'closed' && !tickets.find(t => t.id === activeTicketId)?.csat_score && (
+                    <div style={{ padding: '1rem', borderBottom: '1px solid var(--border-subtle)', background: 'rgba(59, 130, 246, 0.05)' }}>
+                      <h4 className="font-semibold" style={{ marginBottom: '0.5rem' }}>How did we do?</h4>
+                      <p className="text-xs text-muted" style={{ marginBottom: '1rem' }}>Please rate your support experience to help us improve.</p>
+                      <form onSubmit={handleRate} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                          {[1, 2, 3, 4, 5].map(star => (
+                            <button
+                              key={star}
+                              type="button"
+                              onClick={() => setCsatForm(prev => ({ ...prev, score: star }))}
+                              style={{
+                                fontSize: '1.5rem',
+                                color: csatForm.score >= star ? '#f59e0b' : 'var(--text-muted)',
+                                background: 'transparent', border: 'none', cursor: 'pointer', transition: 'transform 0.1s'
+                              }}
+                              onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.2)'}
+                              onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+                            >
+                              ★
+                            </button>
+                          ))}
+                        </div>
+                        {csatForm.score > 0 && (
+                          <div className="animate-fadeUp" style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                            <input
+                              type="text"
+                              placeholder="Any feedback? (Optional)"
+                              className="input"
+                              style={{ flexGrow: 1 }}
+                              value={csatForm.comment}
+                              onChange={e => setCsatForm(prev => ({ ...prev, comment: e.target.value }))}
+                            />
+                            <button type="submit" className="btn btn-primary" disabled={csatSubmitting}>
+                              {csatSubmitting ? 'Submitting…' : 'Submit Rating'}
+                            </button>
+                          </div>
+                        )}
+                      </form>
+                    </div>
+                  )}
+                  {tickets.find(t => t.id === activeTicketId)?.csat_score && (
+                    <div style={{ padding: '0.75rem 1rem', borderBottom: '1px solid var(--border-subtle)', background: 'rgba(16, 185, 129, 0.05)', color: 'var(--brand-500)', fontSize: '0.8125rem', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <span>✅</span> You rated this interaction {tickets.find(t => t.id === activeTicketId).csat_score} stars.
+                    </div>
+                  )}
+
                   <div style={{ flexGrow: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
                     <ChatPanel
                       ticketId={activeTicketId}

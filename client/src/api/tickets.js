@@ -9,6 +9,7 @@ export const ticketApi = {
   claim:    (id)         => api.post(`/api/tickets/${id}/claim`),
   messages: (id, params) => api.get(`/api/tickets/${id}/messages`, { params }),
   setPriority: (id, priority) => api.patch(`/api/tickets/${id}/priority`, { priority }),
+  rate:     (id, score, comment) => api.post(`/api/tickets/${id}/rate`, { score, comment }),
 };
 
 

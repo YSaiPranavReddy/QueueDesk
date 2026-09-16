@@ -7,6 +7,7 @@ import { authApi } from '../api/auth.js';
 import { ticketApi, agentApi } from '../api/tickets.js';
 import { analyticsApi } from '../api/analytics.js';
 import { useSocket } from '../hooks/useSocket.js';
+import { requestNotificationPermission, sendNotification } from '../utils/notifications.js';
 import ChatPanel from '../components/ChatPanel.jsx';
 import './Dashboard.css';
 
@@ -40,6 +41,7 @@ export default function AgentDashboard() {
   const [notifications, setNotifications] = useState([]);
   const [showNotifPanel, setShowNotifPanel] = useState(false);
   const [analytics,     setAnalytics]     = useState(null);
+  const [desktopNotifs, setDesktopNotifs] = useState(() => localStorage.getItem('desktopNotifs') === 'true');
 
   const { socket } = useSocket();
 
@@ -85,6 +87,7 @@ export default function AgentDashboard() {
 
     socket.on('ticket:assigned', ({ ticket }) => {
       setToast({ subject: ticket.subject, ticketId: ticket.id });
+      if (desktopNotifs) sendNotification('New Ticket Assigned', { body: ticket.subject });
       fetchTickets();
       socket.emit('chat:join', { ticketId: ticket.id });
       setTimeout(() => setToast(null), 6000);
@@ -92,6 +95,7 @@ export default function AgentDashboard() {
 
     socket.on('ticket:pending', ({ ticket }) => {
       setTickets(prev => prev.some(t => t.id === ticket.id) ? prev : [ticket, ...prev]);
+      if (desktopNotifs) sendNotification('New Ticket in Queue', { body: ticket.subject });
     });
 
     socket.on('chat:message', ({ message }) => {
@@ -102,6 +106,7 @@ export default function AgentDashboard() {
           ...prev,
           [message.ticket_id]: (prev[message.ticket_id] || 0) + 1,
         }));
+        if (desktopNotifs) sendNotification('New Message', { body: message.body });
       }
     });
 
@@ -352,6 +357,34 @@ export default function AgentDashboard() {
           </label>
         </div>
 
+        {/* Desktop Notifs toggle */}
+        <div className="pref-row">
+          <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>Desktop Alerts</span>
+          <label className="pref-toggle">
+            <input
+              type="checkbox"
+              checked={desktopNotifs}
+              onChange={async e => {
+                const v = e.target.checked;
+                if (v) {
+                  const granted = await requestNotificationPermission();
+                  if (granted) {
+                    setDesktopNotifs(true);
+                    localStorage.setItem('desktopNotifs', 'true');
+                  } else {
+                    alert('Please allow notifications in your browser settings.');
+                  }
+                } else {
+                  setDesktopNotifs(false);
+                  localStorage.setItem('desktopNotifs', 'false');
+                }
+              }}
+            />
+            <span className="pref-toggle-track" />
+            <span className="pref-toggle-thumb" />
+          </label>
+        </div>
+
         {/* User */}
         <div className="dash-user">
           <div className="dash-user-avatar agent-avatar">{user?.name?.[0]?.toUpperCase()}</div>
@@ -484,7 +517,7 @@ export default function AgentDashboard() {
                     { label: 'Total Volume', value: analytics.global.total, icon: '📊', color: 'blue' },
                     { label: 'Pending / Queue', value: analytics.global.pending, icon: '⏳', color: 'yellow' },
                     { label: 'Escalated / SLA Breached', value: analytics.global.escalated, icon: '⚠️', color: 'red' },
-                    { label: 'Resolved Tickets', value: analytics.global.closed, icon: '✅', color: 'green' },
+                    { label: 'Avg CSAT Score', value: `${analytics.global.avg_csat} ⭐`, icon: '⭐', color: 'green' },
                   ].map(({ label, value, icon, color }) => (
                     <div key={label} className="dash-stat-card">
                       <div className={`dash-stat-icon-wrap ${color}`}>{icon}</div>
@@ -506,6 +539,7 @@ export default function AgentDashboard() {
                         <th style={{ padding: '0.75rem 0' }}>Status</th>
                         <th style={{ padding: '0.75rem 0' }}>Active Chats</th>
                         <th style={{ padding: '0.75rem 0' }}>Resolved</th>
+                        <th style={{ padding: '0.75rem 0' }}>Avg CSAT</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -533,6 +567,9 @@ export default function AgentDashboard() {
                           </td>
                           <td style={{ padding: '0.75rem 0', color: 'var(--text-secondary)' }}>{agent.active_chats}</td>
                           <td style={{ padding: '0.75rem 0', color: 'var(--text-secondary)' }}>{agent.closed_chats}</td>
+                          <td style={{ padding: '0.75rem 0', fontWeight: 500, color: 'var(--brand-500)' }}>
+                            {agent.avg_csat > 0 ? `${agent.avg_csat} ⭐` : 'N/A'}
+                          </td>
                         </tr>
                       ))}
                     </tbody>
