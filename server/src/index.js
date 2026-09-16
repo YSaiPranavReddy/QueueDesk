@@ -25,6 +25,7 @@ import authRoutes    from './routes/auth.js';
 import ticketRoutes  from './routes/tickets.js';
 import messageRoutes from './routes/messages.js';
 import agentRoutes   from './routes/agents.js';
+import analyticsRoutes from './routes/analytics.js';
 import swaggerUi     from 'swagger-ui-express';
 import { swaggerSpec } from './docs/swagger.js';
 
@@ -85,6 +86,7 @@ app.use('/api/auth',              authRoutes);
 app.use('/api/tickets',           ticketRoutes);
 app.use('/api/tickets/:id/messages', messageRoutes);
 app.use('/api/agents',            agentRoutes);
+app.use('/api/analytics',         analyticsRoutes);
 
 // ── 404 + Global Error Handler ────────────────────────────────────────────────
 app.use(notFound);

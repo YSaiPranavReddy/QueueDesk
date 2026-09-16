@@ -5,6 +5,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { authApi } from '../api/auth.js';
 import { ticketApi, agentApi } from '../api/tickets.js';
+import { analyticsApi } from '../api/analytics.js';
 import { useSocket } from '../hooks/useSocket.js';
 import ChatPanel from '../components/ChatPanel.jsx';
 import './Dashboard.css';
@@ -38,6 +39,7 @@ export default function AgentDashboard() {
   const [unreadCounts,  setUnreadCounts]  = useState({});
   const [notifications, setNotifications] = useState([]);
   const [showNotifPanel, setShowNotifPanel] = useState(false);
+  const [analytics,     setAnalytics]     = useState(null);
 
   const { socket } = useSocket();
 
@@ -56,6 +58,14 @@ export default function AgentDashboard() {
       setLoading(false);
     }
   }, [filter]);
+
+  useEffect(() => {
+    if (activeTab === 'analytics' && user?.role === 'admin') {
+      analyticsApi.getMetrics()
+        .then(res => setAnalytics(res.data.metrics))
+        .catch(console.error);
+    }
+  }, [activeTab, user?.role]);
 
   useEffect(() => {
     fetchTickets();
@@ -272,6 +282,14 @@ export default function AgentDashboard() {
               <span className="badge badge-yellow" style={{ marginLeft: 'auto', fontSize: '0.68rem' }}>{myOnHoldTickets.length}</span>
             )}
           </button>
+          {user?.role === 'admin' && (
+            <button
+              className={`dash-nav-item ${activeTab === 'analytics' ? 'active' : ''}`}
+              onClick={() => setActiveTab('analytics')}
+            >
+              <span>📈</span> Analytics
+            </button>
+          )}
         </nav>
 
         {/* Notifications */}
@@ -439,6 +457,87 @@ export default function AgentDashboard() {
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── ANALYTICS TAB (ADMIN ONLY) ── */}
+        {activeTab === 'analytics' && user?.role === 'admin' && (
+          <div style={{ overflowY: 'auto', flexGrow: 1, padding: '1rem' }}>
+            <div className="dash-page-header">
+              <div>
+                <div className="dash-page-title">Manager Analytics</div>
+                <div className="dash-page-subtitle">Platform overview & Agent performance</div>
+              </div>
+            </div>
+
+            {!analytics ? (
+              <div style={{ display: 'flex', justifyContent: 'center', padding: '3rem' }}>
+                <div className="spinner" style={{ width: 28, height: 28 }} />
+              </div>
+            ) : (
+              <div className="animate-fadeUp">
+                {/* Global Stats */}
+                <div className="dash-stats-row" style={{ marginBottom: '2rem' }}>
+                  {[
+                    { label: 'Total Volume', value: analytics.global.total, icon: '📊', color: 'blue' },
+                    { label: 'Pending / Queue', value: analytics.global.pending, icon: '⏳', color: 'yellow' },
+                    { label: 'Escalated / SLA Breached', value: analytics.global.escalated, icon: '⚠️', color: 'red' },
+                    { label: 'Resolved Tickets', value: analytics.global.closed, icon: '✅', color: 'green' },
+                  ].map(({ label, value, icon, color }) => (
+                    <div key={label} className="dash-stat-card">
+                      <div className={`dash-stat-icon-wrap ${color}`}>{icon}</div>
+                      <div className="dash-stat-body">
+                        <div className="dash-stat-value">{value}</div>
+                        <div className="dash-stat-label">{label}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Agent Performance Table */}
+                <div className="card" style={{ padding: '1.25rem', overflowX: 'auto' }}>
+                  <h3 className="font-semibold" style={{ marginBottom: '1rem' }}>Agent Performance</h3>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                    <thead>
+                      <tr style={{ borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-secondary)', fontSize: '0.8125rem' }}>
+                        <th style={{ padding: '0.75rem 0' }}>Agent Name</th>
+                        <th style={{ padding: '0.75rem 0' }}>Status</th>
+                        <th style={{ padding: '0.75rem 0' }}>Active Chats</th>
+                        <th style={{ padding: '0.75rem 0' }}>Resolved</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {analytics.agents.map(agent => (
+                        <tr key={agent.id} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+                          <td style={{ padding: '0.75rem 0', fontWeight: 500 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                              <div className="dash-user-avatar" style={{ width: 28, height: 28, fontSize: '0.75rem' }}>
+                                {agent.name?.[0]?.toUpperCase()}
+                              </div>
+                              <div>
+                                <div>{agent.name}</div>
+                                <div className="text-muted text-xs">{agent.email}</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td style={{ padding: '0.75rem 0' }}>
+                            <span style={{ 
+                              display: 'inline-flex', alignItems: 'center', gap: '0.25rem',
+                              fontSize: '0.8125rem', color: AGENT_STATUS_COLORS[agent.online_status] || AGENT_STATUS_COLORS.offline 
+                            }}>
+                              <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'currentColor' }} />
+                              {agent.online_status.charAt(0).toUpperCase() + agent.online_status.slice(1)}
+                            </span>
+                          </td>
+                          <td style={{ padding: '0.75rem 0', color: 'var(--text-secondary)' }}>{agent.active_chats}</td>
+                          <td style={{ padding: '0.75rem 0', color: 'var(--text-secondary)' }}>{agent.closed_chats}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             )}
           </div>
