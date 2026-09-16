@@ -25,8 +25,13 @@ QueueDesk is a highly concurrent, horizontally scalable customer support platfor
 - **Resilient Real-Time Chat:** Socket.IO with Redis Adapter ensures messages are delivered across multiple server instances.
 - **Distributed Locking:** Redis `SET NX EX` prevents race conditions where two agents might claim the same ticket simultaneously.
 - **Automated SLA Escalations:** BullMQ cron jobs constantly monitor ticket wait times, escalating priority and alerting staff when SLAs are breached.
+- **Manager Analytics Dashboard:** Real-time business intelligence aggregating total volume, agent performance, and wait times using optimized PostgreSQL queries.
+- **Customer Satisfaction (CSAT):** Integrated 5-star rating system closing the feedback loop on resolved tickets, directly tied into agent performance metrics.
+- **Native Browser Notifications:** Agents receive OS-level pings via the Web Notification API when backgrounded during incoming messages or assignments.
+- **Canned Responses & Markdown:** `/` slash commands for instant macro insertion and safe Markdown/Rich text rendering for code blocks and links.
 - **Graceful Disconnect Handling:** Background workers monitor WebSocket connections, giving users a grace period to reconnect before freeing up the agent or putting the ticket on hold.
 - **Asynchronous Email Delivery:** Resend API integration powered by background queues ensures the main API thread is never blocked by email delivery.
+- **OpenAPI / Swagger Docs:** Fully documented backend endpoints accessible at `/api-docs`.
 
 ---
 
