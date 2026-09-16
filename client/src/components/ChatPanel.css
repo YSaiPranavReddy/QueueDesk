@@ -249,7 +249,9 @@
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
 }
 
-.chat-input::placeholder { color: var(--text-muted); }
+.chat-input::placeholder {
+  transition: all var(--transition-fast);
+}
 
 .chat-input:disabled {
   opacity: 0.5;
@@ -282,4 +284,60 @@
   opacity: 0.35;
   cursor: not-allowed;
   box-shadow: none;
+}
+
+/* ── Canned Responses ────────────────────── */
+.canned-menu {
+  position: absolute;
+  bottom: 100%;
+  left: 1rem;
+  right: 1rem;
+  margin-bottom: 0.5rem;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.4);
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  padding: 0.5rem;
+  backdrop-filter: blur(10px);
+  animation: fadeUp 0.15s ease-out forwards;
+}
+
+.canned-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 0.5rem 0.75rem;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.1s;
+}
+
+.canned-item.active,
+.canned-item:hover {
+  background: rgba(59, 130, 246, 0.15);
+}
+
+.canned-item-cmd {
+  font-family: monospace;
+  font-weight: 700;
+  color: var(--brand-400);
+  font-size: 0.8125rem;
+}
+
+.canned-item-text {
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  margin-top: 0.125rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }

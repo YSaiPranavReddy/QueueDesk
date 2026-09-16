@@ -13,6 +13,14 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { ticketApi } from '../api/tickets.js';
 import './ChatPanel.css';
 
+const CANNED_RESPONSES = [
+  { command: '/hello', text: 'Hi there! How can I help you today?' },
+  { command: '/hold', text: 'I need a few minutes to check with my team. Please hold on!' },
+  { command: '/resolved', text: 'I believe this issue is resolved. Let me know if you need anything else!' },
+  { command: '/docs', text: 'You can find more information in our documentation here: https://queuedesk.example.com/docs' },
+  { command: '/escalate', text: 'I am going to escalate this to a specialist who can help you further.' }
+];
+
 export default function ChatPanel({ ticketId, socket, currentUserId, currentUserRole, ticketStatus }) {
   const [messages,   setMessages]   = useState([]);
   const [input,      setInput]      = useState('');
@@ -24,6 +32,15 @@ export default function ChatPanel({ ticketId, socket, currentUserId, currentUser
   const [closedLive, setClosedLive] = useState(false);
   const bottomRef  = useRef(null);
   const typingTimer = useRef(null);
+
+  // Canned Responses State
+  const [showCannedMenu, setShowCannedMenu] = useState(false);
+  const [cannedFilter, setCannedFilter]     = useState('');
+  const [selectedIndex, setSelectedIndex]   = useState(0);
+
+  const filteredCanned = CANNED_RESPONSES.filter(c => 
+    c.command.toLowerCase().startsWith(cannedFilter.toLowerCase())
+  );
 
   const isClosed = ticketStatus === 'closed' || closedLive;
 
@@ -136,9 +153,20 @@ export default function ChatPanel({ ticketId, socket, currentUserId, currentUser
     setSending(false);
   }, [input, sending, socket, ticketId, currentUserId]);
 
-  // ── Typing indicator ─────────────────────────────────────────────────────────
+  // ── Typing indicator & Canned Responses ──────────────────────────────────────
   const handleTyping = (e) => {
-    setInput(e.target.value);
+    const val = e.target.value;
+    setInput(val);
+
+    // Canned responses trigger for agents
+    if (currentUserRole === 'agent' && val.startsWith('/')) {
+      setShowCannedMenu(true);
+      setCannedFilter(val);
+      setSelectedIndex(0);
+    } else {
+      setShowCannedMenu(false);
+    }
+
     if (!socket) return;
     socket.emit('chat:typing', { ticketId, isTyping: true });
     clearTimeout(typingTimer.current);
@@ -147,7 +175,35 @@ export default function ChatPanel({ ticketId, socket, currentUserId, currentUser
     }, 1500);
   };
 
+  const handleSelectCanned = (text) => {
+    setInput(text);
+    setShowCannedMenu(false);
+    document.getElementById(`chat-input-${ticketId}`)?.focus();
+  };
+
   const handleKeyDown = (e) => {
+    if (showCannedMenu && filteredCanned.length > 0) {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setSelectedIndex(prev => (prev + 1) % filteredCanned.length);
+        return;
+      }
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setSelectedIndex(prev => (prev - 1 + filteredCanned.length) % filteredCanned.length);
+        return;
+      }
+      if (e.key === 'Enter' || e.key === 'Tab') {
+        e.preventDefault();
+        handleSelectCanned(filteredCanned[selectedIndex].text);
+        return;
+      }
+      if (e.key === 'Escape') {
+        setShowCannedMenu(false);
+        return;
+      }
+    }
+
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSend();
@@ -227,26 +283,48 @@ export default function ChatPanel({ ticketId, socket, currentUserId, currentUser
           {chatError}
         </div>
       )}
-      <form className="chat-input-row" onSubmit={handleSend}>
-        <textarea
-          id={`chat-input-${ticketId}`}
-          className="chat-input"
-          placeholder={isClosed ? 'This conversation is closed' : 'Type a message… (Enter to send)'}
-          rows={2}
-          value={input}
-          onChange={handleTyping}
-          onKeyDown={handleKeyDown}
-          disabled={sending || isClosed}
-        />
-        <button
-          id={`chat-send-${ticketId}`}
-          type="submit"
-          className="chat-send-btn"
-          disabled={!input.trim() || sending || isClosed}
-        >
-          ➤
-        </button>
-      </form>
+      
+      {/* Input container with relative positioning for the absolute popup */}
+      <div style={{ position: 'relative' }}>
+        {/* Canned Responses Menu */}
+        {showCannedMenu && filteredCanned.length > 0 && (
+          <div className="canned-menu">
+            {filteredCanned.map((item, idx) => (
+              <button
+                key={item.command}
+                type="button"
+                className={`canned-item ${idx === selectedIndex ? 'active' : ''}`}
+                onClick={() => handleSelectCanned(item.text)}
+                onMouseEnter={() => setSelectedIndex(idx)}
+              >
+                <span className="canned-item-cmd">{item.command}</span>
+                <span className="canned-item-text">{item.text}</span>
+              </button>
+            ))}
+          </div>
+        )}
+
+        <form className="chat-input-row" onSubmit={handleSend}>
+          <textarea
+            id={`chat-input-${ticketId}`}
+            className="chat-input"
+            placeholder={isClosed ? 'This conversation is closed' : 'Type a message… (Enter to send)'}
+            rows={2}
+            value={input}
+            onChange={handleTyping}
+            onKeyDown={handleKeyDown}
+            disabled={sending || isClosed}
+          />
+          <button
+            id={`chat-send-${ticketId}`}
+            type="submit"
+            className="chat-send-btn"
+            disabled={!input.trim() || sending || isClosed}
+          >
+            ➤
+          </button>
+        </form>
+      </div>
     </div>
   );
 }
