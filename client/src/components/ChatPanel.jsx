@@ -11,6 +11,7 @@
  */
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { ticketApi } from '../api/tickets.js';
+import ReactMarkdown from 'react-markdown';
 import './ChatPanel.css';
 
 const CANNED_RESPONSES = [
@@ -245,7 +246,7 @@ export default function ChatPanel({ ticketId, socket, currentUserId, currentUser
               return (
                 <div key={m.id} className="chat-msg chat-msg-system">
                   <div className="chat-bubble">
-                    <span className="chat-bubble-body">{m.body}</span>
+                    <ReactMarkdown className="markdown-body">{m.body}</ReactMarkdown>
                   </div>
                 </div>
               );
@@ -258,7 +259,7 @@ export default function ChatPanel({ ticketId, socket, currentUserId, currentUser
                   </div>
                 )}
                 <div className="chat-bubble">
-                  <span className="chat-bubble-body">{m.body}</span>
+                  <ReactMarkdown className="markdown-body">{m.body}</ReactMarkdown>
                   <span className="chat-bubble-time">{formatTime(m.created_at || m.sent_at)}</span>
                 </div>
               </div>

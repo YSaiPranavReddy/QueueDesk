@@ -341,3 +341,58 @@
   text-overflow: ellipsis;
   max-width: 100%;
 }
+
+/* ── Markdown Chat Body ──────────────────── */
+.markdown-body {
+  font-size: 0.875rem;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+.markdown-body p {
+  margin: 0 0 0.5rem 0;
+}
+
+.markdown-body p:last-child {
+  margin-bottom: 0;
+}
+
+.markdown-body a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  font-weight: 500;
+}
+
+.markdown-body strong {
+  font-weight: 700;
+}
+
+.markdown-body code {
+  font-family: monospace;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 0.15rem 0.3rem;
+  border-radius: 4px;
+  font-size: 0.85em;
+}
+
+/* For multi-line code blocks */
+.markdown-body pre {
+  background: rgba(0, 0, 0, 0.25);
+  padding: 0.75rem;
+  border-radius: var(--radius-md);
+  overflow-x: auto;
+  margin: 0.5rem 0;
+}
+
+.markdown-body pre code {
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+}
+
+/* Specific adjustment for agent's own bubbles (blue bg) */
+.chat-msg-mine .markdown-body code,
+.chat-msg-mine .markdown-body pre {
+  background: rgba(0, 0, 0, 0.15);
+}
