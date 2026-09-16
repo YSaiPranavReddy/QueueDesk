@@ -71,8 +71,35 @@ const issueRefreshToken = async (res, user) => {
 // ─── Routes ───────────────────────────────────────────────────────────────────
 
 /**
- * POST /api/auth/register
- * Body: { name, email, password, role? }
+ * @swagger
+ * /api/auth/register:
+ *   post:
+ *     summary: Register a new user
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [name, email, password]
+ *             properties:
+ *               name:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *               role:
+ *                 type: string
+ *                 enum: [customer, agent]
+ *     responses:
+ *       201:
+ *         description: Successfully registered
+ *       400:
+ *         description: Validation error
+ *       409:
+ *         description: Email already in use
  */
 router.post('/register', async (req, res, next) => {
   try {
@@ -102,9 +129,28 @@ router.post('/register', async (req, res, next) => {
 });
 
 /**
- * POST /api/auth/login
- * Body: { email, password }
- * Rate-limited: 10 req / 15 min per IP
+ * @swagger
+ * /api/auth/login:
+ *   post:
+ *     summary: Log in to the application
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email, password]
+ *             properties:
+ *               email:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Successfully logged in
+ *       401:
+ *         description: Invalid credentials
  */
 router.post('/login', loginLimiter, async (req, res, next) => {
   try {
@@ -134,9 +180,18 @@ router.post('/login', loginLimiter, async (req, res, next) => {
 });
 
 /**
- * POST /api/auth/refresh
- * Reads refreshToken from httpOnly cookie.
- * Returns a new access token (+ rotates the refresh token).
+ * @swagger
+ * /api/auth/refresh:
+ *   post:
+ *     summary: Refresh access token
+ *     tags: [Auth]
+ *     security:
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: Token successfully refreshed
+ *       401:
+ *         description: No valid refresh token provided
  */
 router.post('/refresh', async (req, res, next) => {
   try {
@@ -171,8 +226,16 @@ router.post('/refresh', async (req, res, next) => {
 });
 
 /**
- * POST /api/auth/logout
- * Revokes the refresh token from the cookie.
+ * @swagger
+ * /api/auth/logout:
+ *   post:
+ *     summary: Log out of the application
+ *     tags: [Auth]
+ *     security:
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: Successfully logged out
  */
 router.post('/logout', async (req, res, next) => {
   try {
@@ -193,6 +256,20 @@ router.post('/logout', async (req, res, next) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/auth/me:
+ *   get:
+ *     summary: Get current authenticated user
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Returns current user data
+ *       401:
+ *         description: Unauthorized
+ */
 router.get('/me', authenticateToken, async (req, res, next) => {
   try {
     const { rows } = await query(

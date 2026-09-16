@@ -28,9 +28,28 @@ const router = Router();
 // All ticket routes require authentication
 router.use(authenticateToken);
 
-// ── POST /api/tickets ─────────────────────────────────────────────────────────
-// Customer submits a new ticket.
-// inferPriority middleware scores priority — customer cannot set it.
+/**
+ * @swagger
+ * /api/tickets:
+ *   post:
+ *     summary: Create a new support ticket
+ *     tags: [Tickets]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [subject]
+ *             properties:
+ *               subject:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Ticket created
+ */
 router.post('/', requireRole('customer'), inferPriority, async (req, res, next) => {
   try {
     const { subject } = req.body;
@@ -49,9 +68,25 @@ router.post('/', requireRole('customer'), inferPriority, async (req, res, next) 
   }
 });
 
-// ── GET /api/tickets ──────────────────────────────────────────────────────────
-// Agents/admins see all tickets (filtered by status query param).
-// Customers see only their own tickets.
+/**
+ * @swagger
+ * /api/tickets:
+ *   get:
+ *     summary: List tickets
+ *     description: Customers see their own tickets. Agents/Admins see all/filtered tickets.
+ *     tags: [Tickets]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [pending, assigned, open, escalated, closed]
+ *     responses:
+ *       200:
+ *         description: List of tickets
+ */
 router.get('/', async (req, res, next) => {
   try {
     const { status, limit = 50, offset = 0 } = req.query;
@@ -87,9 +122,26 @@ router.get('/', async (req, res, next) => {
   }
 });
 
-// ── GET /api/tickets/:id ──────────────────────────────────────────────────────
-// Returns ticket detail + message history.
-// Authorization: customer who owns it, assigned agent, or admin.
+/**
+ * @swagger
+ * /api/tickets/{id}:
+ *   get:
+ *     summary: Get ticket details and messages
+ *     tags: [Tickets]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Ticket and message history
+ *       403:
+ *         description: Access denied
+ */
 router.get('/:id', async (req, res, next) => {
   try {
     const ticket = await findTicketById(req.params.id);
@@ -113,8 +165,24 @@ router.get('/:id', async (req, res, next) => {
   }
 });
 
-// ── PATCH /api/tickets/:id/hold ──────────────────────────────────────────────
-// Put a ticket on hold. Only the assigned agent or admin can do this.
+/**
+ * @swagger
+ * /api/tickets/{id}/hold:
+ *   patch:
+ *     summary: Put an active ticket on hold
+ *     tags: [Tickets]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Ticket placed on hold
+ */
 router.patch('/:id/hold', requireRole('agent', 'admin'), async (req, res, next) => {
   try {
     const ticket = await findTicketById(req.params.id);
@@ -153,8 +221,24 @@ router.patch('/:id/hold', requireRole('agent', 'admin'), async (req, res, next) 
   }
 });
 
-// ── PATCH /api/tickets/:id/close ──────────────────────────────────────────────
-// Close a ticket. Only the assigned agent or admin can close.
+/**
+ * @swagger
+ * /api/tickets/{id}/close:
+ *   patch:
+ *     summary: Close a ticket
+ *     tags: [Tickets]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Ticket closed
+ */
 router.patch('/:id/close', requireRole('agent', 'admin'), async (req, res, next) => {
   try {
     const ticket = await findTicketById(req.params.id);
@@ -199,9 +283,27 @@ router.patch('/:id/close', requireRole('agent', 'admin'), async (req, res, next)
   }
 });
 
-// ── POST /api/tickets/:id/claim ────────────────────────────────────────────────
-// Agent claims a pending ticket. Uses Redis SET NX EX distributed lock
-// to prevent two agents claiming simultaneously.
+/**
+ * @swagger
+ * /api/tickets/{id}/claim:
+ *   post:
+ *     summary: Claim a pending ticket
+ *     description: Agent claims a pending ticket. Uses Redis SET NX EX distributed lock.
+ *     tags: [Tickets]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Ticket successfully claimed
+ *       409:
+ *         description: Ticket already claimed or locked
+ */
 router.post('/:id/claim', requireRole('agent'), async (req, res, next) => {
   try {
     const result = await claimTicket(req.params.id, req.user.id);

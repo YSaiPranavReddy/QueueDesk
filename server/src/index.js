@@ -25,6 +25,8 @@ import authRoutes    from './routes/auth.js';
 import ticketRoutes  from './routes/tickets.js';
 import messageRoutes from './routes/messages.js';
 import agentRoutes   from './routes/agents.js';
+import swaggerUi     from 'swagger-ui-express';
+import { swaggerSpec } from './docs/swagger.js';
 
 const app = express();
 const server = http.createServer(app);
@@ -73,6 +75,12 @@ app.get('/health', async (_req, res) => {
 });
 
 // ── API Routes ────────────────────────────────────────────────────────────────
+// Swagger Documentation
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+  customSiteTitle: "QueueDesk API Documentation",
+  customCss: '.swagger-ui .topbar { display: none }', // Hide default topbar
+}));
+
 app.use('/api/auth',              authRoutes);
 app.use('/api/tickets',           ticketRoutes);
 app.use('/api/tickets/:id/messages', messageRoutes);

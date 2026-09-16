@@ -22,9 +22,29 @@ router.use(authenticateToken);
 
 const VALID_STATUSES = ['available', 'busy', 'offline'];
 
-// ── PATCH /api/agents/status ──────────────────────────────────────────────────
-// Agent updates their own availability.
-// Writes to Redis in M3 (here we just validate and return the value — Redis not yet live).
+/**
+ * @swagger
+ * /api/agents/status:
+ *   patch:
+ *     summary: Update agent status
+ *     tags: [Agents]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [status]
+ *             properties:
+ *               status:
+ *                 type: string
+ *                 enum: [available, busy, offline]
+ *     responses:
+ *       200:
+ *         description: Status updated successfully
+ */
 router.patch('/status', requireRole('agent', 'admin'), async (req, res, next) => {
   try {
     const { status } = req.body;
@@ -69,8 +89,20 @@ router.patch('/status', requireRole('agent', 'admin'), async (req, res, next) =>
   }
 });
 
-// ── GET /api/agents ───────────────────────────────────────────────────────────
-// Admin: list all agents. Online status will be merged from Redis in M3.
+/**
+ * @swagger
+ * /api/agents:
+ *   get:
+ *     summary: List all agents (Admin only)
+ *     tags: [Agents]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of agents
+ *       403:
+ *         description: Access denied
+ */
 router.get('/', requireRole('admin'), async (req, res, next) => {
   try {
     const agents = await findAllAgents();
@@ -87,8 +119,24 @@ router.get('/', requireRole('admin'), async (req, res, next) => {
   }
 });
 
-// ── GET /api/agents/:id ───────────────────────────────────────────────────────
-// Get a specific agent's profile (admin or the agent themselves).
+/**
+ * @swagger
+ * /api/agents/{id}:
+ *   get:
+ *     summary: Get specific agent profile
+ *     tags: [Agents]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Agent profile data
+ */
 router.get('/:id', requireRole('agent', 'admin'), async (req, res, next) => {
   try {
     const { id, role } = req.user;
