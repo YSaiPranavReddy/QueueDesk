@@ -50,7 +50,8 @@ export const forceFlushTranscript = async (ticketId) => {
 
   await query(
     `INSERT INTO messages (id, ticket_id, sender_id, sender_role, body, sent_at) 
-     VALUES ${values.join(', ')}`,
+     VALUES ${values.join(', ')}
+     ON CONFLICT (id) DO NOTHING`,
     queryParams
   );
 

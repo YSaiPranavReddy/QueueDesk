@@ -24,12 +24,16 @@ export const findMessagesByTicket = async (ticketId, { limit = 100, before = nul
   const CACHE_KEY = `cache:ticket_history:${ticketId}`;
 
   // M11.T3: If requesting the latest messages (no pagination cursor), try cache first
+  // But only use cache if we're confident the buffer has been flushed (skip cache when buffer might be populated)
   if (!before) {
-    const cachedStr = await redis.get(CACHE_KEY);
-    if (cachedStr) {
-      try {
-        return JSON.parse(cachedStr);
-      } catch (_) {}
+    const bufferLen = await redis.llen(`chat:buffer:${ticketId}`);
+    if (bufferLen === 0) {
+      const cachedStr = await redis.get(CACHE_KEY);
+      if (cachedStr) {
+        try {
+          return JSON.parse(cachedStr);
+        } catch (_) {}
+      }
     }
   }
 
@@ -52,12 +56,48 @@ export const findMessagesByTicket = async (ticketId, { limit = 100, before = nul
     params
   );
 
-  // M11.T3: Cache the result for 5 minutes (only for base query)
+  // Also read any messages still in the Redis buffer (not yet flushed to DB)
+  // This ensures history is always complete even between flush cycles
+  let allRows = rows;
   if (!before) {
-    await redis.setex(CACHE_KEY, 300, JSON.stringify(rows));
+    try {
+      const rawBuffer = await redis.lrange(`chat:buffer:${ticketId}`, 0, -1);
+      if (rawBuffer.length > 0) {
+        const dbIds = new Set(rows.map(r => r.id));
+        const bufferedMsgs = rawBuffer
+          .map(r => { try { return JSON.parse(r); } catch { return null; } })
+          .filter(m => m && !dbIds.has(m.id))
+          .map(m => ({
+            id: m.id,
+            ticket_id: m.ticket_id,
+            sender_id: m.sender_id,
+            sender_role: m.sender_role,
+            body: m.body,
+            sent_at: m.created_at,  // Redis buffer uses created_at
+            sender_name: null,       // Not available in buffer; client handles gracefully
+            read_at: null,
+          }));
+
+        if (bufferedMsgs.length > 0) {
+          allRows = [...rows, ...bufferedMsgs].sort(
+            (a, b) => new Date(a.sent_at) - new Date(b.sent_at)
+          );
+          // Don't cache when there are unflushed buffer messages — it would persist stale data
+          return allRows;
+        }
+      }
+    } catch (err) {
+      // Buffer read is best-effort; fall through to return DB rows
+      console.error('[Message Model] Error reading Redis buffer for history:', err.message);
+    }
   }
 
-  return rows;
+  // M11.T3: Cache the result for 5 minutes (only for base query, only when buffer is empty)
+  if (!before) {
+    await redis.setex(CACHE_KEY, 300, JSON.stringify(allRows));
+  }
+
+  return allRows;
 };
 
 /**
