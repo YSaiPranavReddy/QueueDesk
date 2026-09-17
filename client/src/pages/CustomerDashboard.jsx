@@ -46,6 +46,12 @@ export default function CustomerDashboard() {
     try {
       const { data } = await ticketApi.list();
       setTickets(data.tickets);
+      // Safety net: clear the "You're connected!" banner if the matched ticket is now closed/no longer active
+      setMatched(prev => {
+        if (!prev) return null;
+        const t = data.tickets.find(t => t.id === prev.ticketId);
+        return (!t || t.status === 'closed' || t.status === 'pending') ? null : prev;
+      });
     } catch {
       setError('Failed to load tickets.');
     } finally {
@@ -80,8 +86,15 @@ export default function CustomerDashboard() {
         }));
       }
     });
-    socket.on('ticket:closed',  () => fetchTickets());
-    socket.on('ticket:on_hold', () => fetchTickets());
+    socket.on('ticket:closed', ({ ticketId } = {}) => {
+      // Clear the "You're connected!" banner if the resolved ticket was the matched one
+      setMatched(prev => (prev && prev.ticketId === ticketId ? null : prev));
+      fetchTickets();
+    });
+    socket.on('ticket:on_hold', ({ ticketId } = {}) => {
+      setMatched(prev => (prev && prev.ticketId === ticketId ? null : prev));
+      fetchTickets();
+    });
     return () => {
       socket.off('queue:position');
       socket.off('ticket:matched');
