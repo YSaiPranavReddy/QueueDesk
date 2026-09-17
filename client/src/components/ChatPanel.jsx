@@ -77,9 +77,14 @@ export default function ChatPanel({ ticketId, socket, currentUserId, currentUser
   useEffect(() => {
     if (!socket || !ticketId) return;
 
-    // Ensure user joins the room when chat opens and requests latest history
-    socket.emit('chat:join', { ticketId });
-    socket.emit('chat:status:request', { ticketId });
+    // Only join the live socket room for active (non-closed) tickets.
+    // For closed/archived tickets, the REST fetch (above) is the single source of truth.
+    // Emitting chat:join for closed tickets causes the server to send a chat:history
+    // response that can race with and overwrite the REST-fetched messages.
+    if (ticketStatus !== 'closed') {
+      socket.emit('chat:join', { ticketId });
+      socket.emit('chat:status:request', { ticketId });
+    }
 
     // Incoming message
     const onMessage = ({ message }) => {
@@ -96,10 +101,23 @@ export default function ChatPanel({ ticketId, socket, currentUserId, currentUser
       });
     };
 
-    // History (on reconnect or chat:join)
+    // History (on reconnect or chat:join) — MERGE with existing instead of replace.
+    // This prevents a race where socket history arrives after the REST fetch and wipes it.
     const onHistory = ({ ticketId: tId, messages: hist }) => {
       if (tId !== ticketId) return;
-      setMessages(hist || []);
+      if (!hist || hist.length === 0) {
+        setLoadingHistory(false);
+        return;
+      }
+      setMessages(prev => {
+        // Merge: keep all existing messages and add any from socket not yet in state
+        const existingIds = new Set(prev.map(m => m.id));
+        const newOnes = hist.filter(m => !existingIds.has(m.id));
+        const merged = [...prev, ...newOnes];
+        // Sort by created_at to ensure correct order
+        merged.sort((a, b) => new Date(a.created_at || a.sent_at) - new Date(b.created_at || b.sent_at));
+        return merged;
+      });
       setLoadingHistory(false);
     };
 
