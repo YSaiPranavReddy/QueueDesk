@@ -94,6 +94,8 @@ export default function CustomerDashboard() {
   const openChat = ticketId => {
     setActiveTicketId(ticketId);
     setUnreadCounts(prev => ({ ...prev, [ticketId]: 0 }));
+    // Reset CSAT form when switching between tickets
+    setCsatForm({ score: 0, comment: '' });
   };
 
   const handleRate = async (e) => {
@@ -102,7 +104,8 @@ export default function CustomerDashboard() {
     setCsatSubmitting(true);
     try {
       await ticketApi.rate(activeTicketId, csatForm.score, csatForm.comment);
-      setTickets(prev => prev.map(t => t.id === activeTicketId ? { ...t, csat_score: csatForm.score, csat_comment: csatForm.comment } : t));
+      // Refetch to get the db-persisted csat_score so the banner condition resolves cleanly
+      await fetchTickets();
       setCsatForm({ score: 0, comment: '' });
     } catch (err) {
       console.error(err);

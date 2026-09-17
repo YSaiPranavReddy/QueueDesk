@@ -27,7 +27,8 @@ export default function ChatPanel({ ticketId, socket, currentUserId, currentUser
   const [input,      setInput]      = useState('');
   const [sending,    setSending]    = useState(false);
   const [typingUser, setTypingUser] = useState(null); // { role }
-  const [partnerStatus, setPartnerStatus] = useState('online'); // 'online' | 'offline'
+  // For closed tickets, default to 'offline' — no one is in the room
+  const [partnerStatus, setPartnerStatus] = useState(() => ticketStatus === 'closed' ? 'offline' : 'online');
   const [loadingHistory, setLoadingHistory] = useState(true);
   const [chatError, setChatError] = useState('');
   const [closedLive, setClosedLive] = useState(false);
@@ -46,9 +47,22 @@ export default function ChatPanel({ ticketId, socket, currentUserId, currentUser
   const isClosed = ticketStatus === 'closed' || closedLive;
 
   useEffect(() => {
+    // Reset all per-ticket state when switching tickets
     setClosedLive(false);
     setChatError('');
-  }, [ticketId]);
+    setMessages([]);
+    setLoadingHistory(true);
+    setTypingUser(null);
+    // Reset partner status: closed tickets have no live presence
+    setPartnerStatus(ticketStatus === 'closed' ? 'offline' : 'online');
+  }, [ticketId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Sync partnerStatus when ticketStatus prop changes (e.g. agent resolves while viewing)
+  useEffect(() => {
+    if (ticketStatus === 'closed') {
+      setPartnerStatus('offline');
+    }
+  }, [ticketStatus]);
 
   // ── Load persisted history via REST on mount ─────────────────────────────────
   useEffect(() => {
@@ -222,7 +236,7 @@ export default function ChatPanel({ ticketId, socket, currentUserId, currentUser
           {isClosed ? 'Archived Chat' : 'Live Support Chat'}
         </span>
         <span className="chat-header-status">
-          {isClosed ? 'Closed' : partnerStatus === 'offline' ? '⚠ Offline' : '● Online'}
+          {isClosed ? '📁 Archived' : partnerStatus === 'offline' ? '⚠ Offline' : '● Online'}
         </span>
         <span className="text-muted text-xs">#{ticketId?.slice(0, 8)}</span>
       </div>
