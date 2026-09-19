@@ -639,3 +639,40 @@
     grid-template-columns: 1fr !important;
   }
 }
+/* ── Chat Layout Classes ── */
+.chat-layout-container {
+  display: flex;
+  gap: 1rem;
+  flex-grow: 1;
+  min-height: 0;
+}
+
+.chat-layout-sidebar {
+  width: 280px;
+  flex-shrink: 0;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  padding: 0.875rem;
+}
+
+.chat-layout-main {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+@media (max-width: 768px) {
+  .chat-layout-container {
+    flex-direction: column;
+  }
+  
+  .chat-layout-sidebar {
+    width: 100%;
+    max-height: 220px;
+  }
+}
