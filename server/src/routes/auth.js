@@ -332,9 +332,9 @@ router.patch('/me/preferences', authenticateToken, async (req, res, next) => {
 // ─── Email Verification ───────────────────────────────────────────────────────
 
 const resendVerifyLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000,
-  max: 3,
-  message: { success: false, message: 'Too many verification requests. Try again in an hour.' },
+  windowMs: 60 * 1000, // 1 minute
+  max: 5,
+  message: { success: false, message: 'Too many verification requests. Try again in a minute.' },
 });
 
 /**
