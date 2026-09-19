@@ -50,7 +50,7 @@ export const config = {
 
   email: {
     smtpHost: optional('SMTP_HOST', 'smtp-relay.brevo.com'),
-    smtpPort: parseInt(optional('SMTP_PORT', '587'), 10),
+    smtpPort: parseInt(optional('SMTP_PORT', '2525'), 10),
     smtpUser: required('SMTP_USER'),
     smtpPass: required('SMTP_PASS'),
     from: optional('EMAIL_FROM', 'QueueDesk <hello@queuedesk.dev>'),
