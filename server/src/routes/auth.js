@@ -18,6 +18,9 @@ import { createError } from '../middleware/errorHandler.js';
 import { authenticateToken } from '../middleware/auth.js';
 import { findUserByEmail, findUserById, createUser } from '../models/user.js';
 import { query } from '../config/db.js';
+import redis from '../config/redis.js';
+import { notificationQueue } from '../workers/notificationWorker.js';
+import { templatePasswordReset } from '../utils/emailTemplates.js';
 
 const router = Router();
 
@@ -301,6 +304,129 @@ router.patch('/me/preferences', authenticateToken, async (req, res, next) => {
     );
 
     res.json({ success: true, notify_email });
+  } catch (err) {
+    next(err);
+  }
+});
+
+
+// ─── Forgot / Reset Password ──────────────────────────────────────────────────
+
+const forgotLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 5,
+  message: { success: false, message: 'Too many reset requests. Please try again in an hour.' },
+});
+
+/**
+ * @swagger
+ * /api/auth/forgot-password:
+ *   post:
+ *     summary: Request a password reset link
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email]
+ *             properties:
+ *               email:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Reset link sent (always 200 to prevent email enumeration)
+ */
+router.post('/forgot-password', forgotLimiter, async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    if (!email) return next(createError(400, 'Email is required'));
+
+    // Always respond 200 regardless of whether the email exists (prevents enumeration)
+    const user = await findUserByEmail(email.toLowerCase().trim());
+    if (!user) {
+      return res.json({ success: true, message: 'If that email exists, a reset link has been sent.' });
+    }
+
+    // Generate a secure random token and store hashed version in Redis (15 min TTL)
+    const rawToken  = crypto.randomBytes(32).toString('hex');
+    const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+    const redisKey  = `pwd_reset:${tokenHash}`;
+
+    await redis.setex(redisKey, 15 * 60, user.id); // 15 minutes
+
+    // Build the reset URL
+    const resetUrl = `${config.frontendUrl}/reset-password?token=${rawToken}`;
+
+    // Send email via Resend through notification queue
+    const template = templatePasswordReset({ name: user.name, resetUrl });
+
+    await notificationQueue.add('email', {
+      to: user.email,
+      subject: template.subject,
+      text: template.text,
+      html: template.html,
+      userId: user.id,
+      eventType: 'password_reset',
+    }, { attempts: 3, backoff: { type: 'exponential', delay: 2000 } });
+
+    res.json({ success: true, message: 'If that email exists, a reset link has been sent.' });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * @swagger
+ * /api/auth/reset-password:
+ *   post:
+ *     summary: Reset password using the token from the email link
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [token, password]
+ *             properties:
+ *               token:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Password updated successfully
+ *       400:
+ *         description: Invalid or expired token
+ */
+router.post('/reset-password', async (req, res, next) => {
+  try {
+    const { token, password } = req.body;
+    if (!token || !password) return next(createError(400, 'Token and new password are required'));
+    if (password.length < 8) return next(createError(400, 'Password must be at least 8 characters'));
+
+    // Look up the hashed token in Redis
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+    const redisKey  = `pwd_reset:${tokenHash}`;
+    const userId    = await redis.get(redisKey);
+
+    if (!userId) {
+      return next(createError(400, 'Invalid or expired reset link. Please request a new one.'));
+    }
+
+    // Hash the new password and update
+    const passwordHash = await bcrypt.hash(password, 12);
+    await query(`UPDATE users SET password_hash = $1 WHERE id = $2`, [passwordHash, userId]);
+
+    // Invalidate the token immediately so it can only be used once
+    await redis.del(redisKey);
+
+    // Revoke all existing refresh tokens for this user (force re-login everywhere)
+    await query(`DELETE FROM refresh_tokens WHERE user_id = $1`, [userId]);
+
+    res.json({ success: true, message: 'Password reset successfully. Please log in with your new password.' });
   } catch (err) {
     next(err);
   }

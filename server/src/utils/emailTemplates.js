@@ -48,11 +48,45 @@ export const templateTicketEscalated = ({ agentName, ticketSubject, adminEmail }
   subject: `SLA Escalation: ${ticketSubject}`,
   text: `SLA Breach Alert,\n\nThe ticket "${ticketSubject}" has breached its SLA and has been escalated.\nAssigned to: ${agentName || 'Unassigned'}.`,
   html: `
-    <div style="font-family: sans-serif; padding: 20px; color: #d32f2f;">
-      <h2>SLA Escalation Alert</h2>
-      <p>The ticket "<strong>${ticketSubject}</strong>" has breached its SLA and has been automatically escalated.</p>
-      <p>Currently assigned to: <strong>${agentName || 'Unassigned'}</strong></p>
-      <p>Please review immediately.</p>
+    <div style="font-family: sans-serif; padding: 20px;">
+      <h2>SLA Escalation</h2>
+      <p>The ticket "<em>${ticketSubject}</em>" has breached its SLA and has been escalated.</p>
+      <p>Assigned to: <strong>${agentName || 'Unassigned'}</strong>.</p>
     </div>
   `
 });
+
+export const templatePasswordReset = ({ name, resetUrl }) => ({
+  subject: 'Reset your QueueDesk password',
+  text: `Hi ${name},\n\nYou requested a password reset for your QueueDesk account.\n\nClick the link below to reset your password (expires in 15 minutes):\n${resetUrl}\n\nIf you didn't request this, you can safely ignore this email. Your password will not change.\n\n— The QueueDesk Team`,
+  html: `
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 520px; margin: 0 auto; background: #0f1117; border-radius: 12px; overflow: hidden; border: 1px solid #1e2130;">
+      <div style="background: linear-gradient(135deg, #1a1f35 0%, #0f1117 100%); padding: 32px 32px 24px; text-align: center; border-bottom: 1px solid #1e2130;">
+        <div style="font-size: 28px; font-weight: 700; color: #fff; letter-spacing: -0.5px;">
+          Queue<span style="color: #6366f1;">Desk</span>
+        </div>
+      </div>
+      <div style="padding: 32px;">
+        <h2 style="color: #f1f5f9; font-size: 20px; font-weight: 600; margin: 0 0 12px;">Reset your password</h2>
+        <p style="color: #94a3b8; font-size: 15px; line-height: 1.6; margin: 0 0 24px;">
+          Hi <strong style="color: #e2e8f0;">${name}</strong>, we received a request to reset the password for your QueueDesk account.
+        </p>
+        <p style="color: #94a3b8; font-size: 14px; margin: 0 0 24px;">
+          Click the button below to choose a new password. This link expires in <strong style="color: #f59e0b;">15 minutes</strong>.
+        </p>
+        <div style="text-align: center; margin: 28px 0;">
+          <a href="${resetUrl}" style="display: inline-block; background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #fff; font-weight: 600; font-size: 15px; text-decoration: none; padding: 13px 32px; border-radius: 8px; letter-spacing: 0.2px;">
+            Reset Password →
+          </a>
+        </div>
+        <p style="color: #64748b; font-size: 13px; margin: 24px 0 0; padding-top: 20px; border-top: 1px solid #1e2130;">
+          If you didn't request a password reset, you can safely ignore this email. Your account is secure.
+        </p>
+      </div>
+      <div style="padding: 16px 32px; background: #0a0d14; text-align: center;">
+        <p style="color: #475569; font-size: 12px; margin: 0;">© 2025 QueueDesk. All rights reserved.</p>
+      </div>
+    </div>
+  `
+});
+

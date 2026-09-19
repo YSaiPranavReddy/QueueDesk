@@ -3,6 +3,7 @@ import { AuthProvider } from './context/AuthContext.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import LandingPage from './pages/LandingPage.jsx';
 import AuthPage from './pages/AuthPage.jsx';
+import ResetPasswordPage from './pages/ResetPasswordPage.jsx';
 import CustomerDashboard from './pages/CustomerDashboard.jsx';
 import AgentDashboard from './pages/AgentDashboard.jsx';
 import AdminDashboard from './pages/AdminDashboard.jsx';
@@ -13,9 +14,10 @@ export default function App() {
       <AuthProvider>
         <Routes>
           {/* Public */}
-          <Route path="/" element={<LandingPage />} />
-          <Route path="/login"    element={<AuthPage />} />
-          <Route path="/register" element={<AuthPage />} />
+          <Route path="/"                 element={<LandingPage />} />
+          <Route path="/login"            element={<AuthPage />} />
+          <Route path="/register"         element={<AuthPage />} />
+          <Route path="/reset-password"   element={<ResetPasswordPage />} />
 
           {/* Customer */}
           <Route

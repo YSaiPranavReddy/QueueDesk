@@ -53,4 +53,6 @@ export const config = {
     from: optional('EMAIL_FROM', 'QueueDesk <onboarding@resend.dev>'),
     adminEmail: optional('ADMIN_EMAIL', ''),
   },
+
+  frontendUrl: optional('FRONTEND_URL', 'http://localhost:5173'),
 };

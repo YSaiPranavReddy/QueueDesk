@@ -405,17 +405,34 @@ const ROLES = [
 export default function AuthPage() {
   const { login } = useAuth();
 
-  const [mode, setMode]       = useState('login');   // 'login' | 'register'
+  const [mode, setMode]       = useState('login');   // 'login' | 'register' | 'forgot'
   const [role, setRole]       = useState('customer');
   const [form, setForm]       = useState({ name: '', email: '', password: '' });
   const [error, setError]     = useState('');
+  const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
 
   const isRegister = mode === 'register';
+  const isForgot   = mode === 'forgot';
 
   const handleChange = (e) => {
     setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
     setError('');
+  };
+
+  const handleForgot = async (e) => {
+    e.preventDefault();
+    setError(''); setSuccess('');
+    if (!form.email.trim()) return setError('Please enter your email address');
+    setLoading(true);
+    try {
+      await authApi.forgotPassword(form.email.trim());
+      setSuccess('Check your inbox! If that email is registered, a reset link has been sent.');
+    } catch (err) {
+      setError(err.response?.data?.message || 'Something went wrong. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -510,17 +527,63 @@ export default function AuthPage() {
               <span className="auth-logo-text">QueueDesk</span>
             </div>
             <h2 className="auth-card-title">
-              {isRegister ? 'Create your account' : 'Welcome back'}
+              {isForgot ? 'Forgot password?' : isRegister ? 'Create your account' : 'Welcome back'}
             </h2>
             <p className="auth-card-subtitle text-secondary">
-              {isRegister
-                ? 'Join QueueDesk and start managing support'
-                : 'Sign in to continue to your dashboard'}
+              {isForgot
+                ? 'Enter your email and we\'ll send a reset link'
+                : isRegister
+                  ? 'Join QueueDesk and start managing support'
+                  : 'Sign in to continue to your dashboard'}
             </p>
           </div>
 
+          {/* ── FORGOT PASSWORD FORM ── */}
+          {isForgot && (
+            <>
+              {success ? (
+                <div style={{ textAlign: 'center', padding: '1.5rem 0' }}>
+                  <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>📬</div>
+                  <div className="font-semibold" style={{ color: 'var(--text-primary)', marginBottom: '0.5rem' }}>Email sent!</div>
+                  <div className="text-sm text-secondary" style={{ marginBottom: '1.5rem' }}>{success}</div>
+                  <button className="auth-switch-btn" onClick={() => { setMode('login'); setSuccess(''); setForm({ name: '', email: '', password: '' }); }}>
+                    ← Back to sign in
+                  </button>
+                </div>
+              ) : (
+                <form className="auth-form" onSubmit={handleForgot} noValidate>
+                  <div className="form-group">
+                    <label className="form-label" htmlFor="forgot-email">Email address</label>
+                    <input
+                      id="forgot-email"
+                      name="email"
+                      type="email"
+                      className="form-input"
+                      placeholder="you@example.com"
+                      value={form.email}
+                      onChange={handleChange}
+                      autoComplete="email"
+                      required
+                    />
+                  </div>
+                  {error && (
+                    <div className="auth-error" role="alert">
+                      <span className="auth-error-icon">⚠</span>{error}
+                    </div>
+                  )}
+                  <button id="forgot-submit" type="submit" className="btn btn-primary btn-lg w-full" disabled={loading}>
+                    {loading ? <><div className="spinner" /> Sending link…</> : 'Send reset link'}
+                  </button>
+                  <div style={{ textAlign: 'center', marginTop: '1rem' }}>
+                    <button type="button" className="auth-switch-btn" onClick={() => { setMode('login'); setError(''); }}>← Back to sign in</button>
+                  </div>
+                </form>
+              )}
+            </>
+          )}
+
           {/* Role selector (register only) */}
-          {isRegister && (
+          {!isForgot && isRegister && (
             <div className="auth-role-selector">
               {ROLES.map((r) => (
                 <button
@@ -537,102 +600,112 @@ export default function AuthPage() {
             </div>
           )}
 
-          {/* Form */}
-          <form className="auth-form" onSubmit={handleSubmit} noValidate>
-            {isRegister && (
-              <div className="form-group">
-                <label className="form-label" htmlFor="name">Full Name</label>
-                <input
-                  id="name"
-                  name="name"
-                  type="text"
-                  className={`form-input ${error && !form.name ? 'error' : ''}`}
-                  placeholder="Alex Johnson"
-                  value={form.name}
-                  onChange={handleChange}
-                  autoComplete="name"
-                  required
-                />
-              </div>
-            )}
-
-            <div className="form-group">
-              <label className="form-label" htmlFor="email">Email address</label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                className="form-input"
-                placeholder="you@example.com"
-                value={form.email}
-                onChange={handleChange}
-                autoComplete="email"
-                required
-              />
-            </div>
-
-            <div className="form-group">
-              <div className="flex justify-between items-center">
-                <label className="form-label" htmlFor="password">Password</label>
-                {!isRegister && (
-                  <span className="text-xs text-secondary" style={{ cursor: 'default' }}>
-                    {/* Forgot password — M10 stretch */}
-                  </span>
+          {/* ── LOGIN / REGISTER FORM ── */}
+          {!isForgot && (
+            <>
+              <form className="auth-form" onSubmit={handleSubmit} noValidate>
+                {isRegister && (
+                  <div className="form-group">
+                    <label className="form-label" htmlFor="name">Full Name</label>
+                    <input
+                      id="name"
+                      name="name"
+                      type="text"
+                      className={`form-input ${error && !form.name ? 'error' : ''}`}
+                      placeholder="Alex Johnson"
+                      value={form.name}
+                      onChange={handleChange}
+                      autoComplete="name"
+                      required
+                    />
+                  </div>
                 )}
+
+                <div className="form-group">
+                  <label className="form-label" htmlFor="email">Email address</label>
+                  <input
+                    id="email"
+                    name="email"
+                    type="email"
+                    className="form-input"
+                    placeholder="you@example.com"
+                    value={form.email}
+                    onChange={handleChange}
+                    autoComplete="email"
+                    required
+                  />
+                </div>
+
+                <div className="form-group">
+                  <div className="flex justify-between items-center">
+                    <label className="form-label" htmlFor="password">Password</label>
+                    {!isRegister && (
+                      <button
+                        type="button"
+                        id="forgot-password-link"
+                        className="auth-switch-btn"
+                        style={{ fontSize: '0.75rem', opacity: 0.75 }}
+                        onClick={() => { setMode('forgot'); setError(''); }}
+                      >
+                        Forgot password?
+                      </button>
+                    )}
+                  </div>
+                  <input
+                    id="password"
+                    name="password"
+                    type="password"
+                    className="form-input"
+                    placeholder={isRegister ? 'At least 8 characters' : '••••••••'}
+                    value={form.password}
+                    onChange={handleChange}
+                    autoComplete={isRegister ? 'new-password' : 'current-password'}
+                    required
+                  />
+                </div>
+
+                {/* Error */}
+                {error && (
+                  <div className="auth-error" role="alert">
+                    <span className="auth-error-icon">⚠</span>
+                    {error}
+                  </div>
+                )}
+
+                {/* Submit */}
+                <button
+                  id="auth-submit"
+                  type="submit"
+                  className="btn btn-primary btn-lg w-full"
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <>
+                      <div className="spinner" />
+                      {isRegister ? 'Creating account…' : 'Signing in…'}
+                    </>
+                  ) : (
+                    isRegister ? 'Create Account' : 'Sign In'
+                  )}
+                </button>
+              </form>
+
+              {/* Switch mode */}
+              <div className="auth-switch">
+                <span className="text-secondary text-sm">
+                  {isRegister ? 'Already have an account?' : "Don't have an account?"}
+                </span>
+                <button
+                  id="auth-mode-toggle"
+                  type="button"
+                  className="auth-switch-btn"
+                  onClick={switchMode}
+                >
+                  {isRegister ? 'Sign in' : 'Create account'}
+                </button>
               </div>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                className="form-input"
-                placeholder={isRegister ? 'At least 8 characters' : '••••••••'}
-                value={form.password}
-                onChange={handleChange}
-                autoComplete={isRegister ? 'new-password' : 'current-password'}
-                required
-              />
-            </div>
-
-            {/* Error */}
-            {error && (
-              <div className="auth-error" role="alert">
-                <span className="auth-error-icon">⚠</span>
-                {error}
-              </div>
-            )}
-
-            {/* Submit */}
-            <button
-              id="auth-submit"
-              type="submit"
-              className="btn btn-primary btn-lg w-full"
-              disabled={loading}
-            >
-              {loading ? (
-                <>
-                  <div className="spinner" />
-                  {isRegister ? 'Creating account…' : 'Signing in…'}
-                </>
-              ) : (
-                isRegister ? 'Create Account' : 'Sign In'
-              )}
-            </button>
-          </form>
-
-          {/* Switch mode */}
-          <div className="auth-switch">
-            <span className="text-secondary text-sm">
-              {isRegister ? 'Already have an account?' : "Don't have an account?"}
-            </span>
-            <button
-              id="auth-mode-toggle"
-              type="button"
-              className="auth-switch-btn"
-              onClick={switchMode}
-            >
-              {isRegister ? 'Sign in' : 'Create account'}
-            </button>
-          </div>
+            </>
+          )}
         </div>
       </div>
     </div>
