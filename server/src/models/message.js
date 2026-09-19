@@ -56,17 +56,27 @@ export const findMessagesByTicket = async (ticketId, { limit = 100, before = nul
     params
   );
 
-  // Also read any messages still in the Redis buffer (not yet flushed to DB)
-  // This ensures history is always complete even between flush cycles
+  // Also read any messages still in the Redis buffer (not yet flushed to DB).
+  // Check BOTH the main buffer AND the processing key (in case a previous flush was interrupted).
   let allRows = rows;
   if (!before) {
     try {
-      const rawBuffer = await redis.lrange(`chat:buffer:${ticketId}`, 0, -1);
-      if (rawBuffer.length > 0) {
+      const [rawBuffer, rawProcessing] = await Promise.all([
+        redis.lrange(`chat:buffer:${ticketId}`, 0, -1),
+        redis.lrange(`chat:buffer_processing:${ticketId}`, 0, -1),
+      ]);
+      const combined = [...rawBuffer, ...rawProcessing];
+      if (combined.length > 0) {
         const dbIds = new Set(rows.map(r => r.id));
-        const bufferedMsgs = rawBuffer
+        const bufferedMsgs = combined
           .map(r => { try { return JSON.parse(r); } catch { return null; } })
           .filter(m => m && !dbIds.has(m.id))
+          .reduce((acc, m) => {
+            // dedupe within buffer itself
+            if (!acc.seen.has(m.id)) { acc.seen.add(m.id); acc.msgs.push(m); }
+            return acc;
+          }, { seen: new Set(), msgs: [] })
+          .msgs
           .map(m => ({
             id: m.id,
             ticket_id: m.ticket_id,

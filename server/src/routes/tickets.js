@@ -101,15 +101,18 @@ router.get('/', async (req, res, next) => {
       filter.customerId = id;
       if (status) filter.status = status;
     } else if (role === 'agent') {
-      if (status === 'pending' || !status) {
-        // pending tickets are unclaimed by definition — every agent can see them
-        // combined with "assigned to me" for any other bucket in the default view
-        filter.agentOrPending = id;
-        if (status) filter.status = status; // narrows to just pending when explicitly requested
-      } else {
-        // assigned / escalated / closed — scope strictly to this agent's own tickets
+      if (status) {
+        // Explicit status filter: scope to this agent's own tickets (or all pending)
         filter.status = status;
-        filter.agentId = id;
+        if (status === 'pending') {
+          // Pending tickets are unclaimed — every agent can see the queue
+        } else {
+          filter.agentId = id;
+        }
+      } else {
+        // Default (no filter): show pending queue + ALL tickets assigned to me (incl. closed)
+        // We use agentOrPending which returns: status='pending' OR agent_id=me
+        filter.agentOrPending = id;
       }
     } else if (role === 'admin') {
       if (status) filter.status = status; // admin sees everything, filtered by status only

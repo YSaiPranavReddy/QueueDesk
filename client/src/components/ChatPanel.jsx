@@ -69,7 +69,10 @@ export default function ChatPanel({ ticketId, socket, currentUserId, currentUser
     if (!ticketId) return;
     ticketApi.messages(ticketId)
       .then(({ data }) => setMessages(data.messages || []))
-      .catch(() => {})
+      .catch((err) => {
+        console.error('[ChatPanel] Failed to load message history:', err?.response?.status, err?.message);
+        setChatError('Failed to load chat history. Please try refreshing.');
+      })
       .finally(() => setLoadingHistory(false));
   }, [ticketId]);
 

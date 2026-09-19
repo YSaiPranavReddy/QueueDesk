@@ -15,35 +15,52 @@ export const forceFlushTranscript = async (ticketId) => {
   const originalKey = `chat:buffer:${ticketId}`;
   const processingKey = `chat:buffer_processing:${ticketId}`;
 
-  // 1. Rename atomically to capture the current state of the buffer
+  // Collect messages from both the main buffer and any stale processing key
+  // (processing key may be left over from a previously interrupted flush)
+  const allRaw = [];
+
+  // Read and clear the main buffer atomically
   try {
     const renamed = await redis.renamenx(originalKey, processingKey);
-    if (!renamed) {
-      // Key didn't exist or processingKey already existed (extremely rare collision)
-      return false;
+    if (renamed) {
+      // Successfully claimed the buffer - read it
+      const raw = await redis.lrange(processingKey, 0, -1);
+      allRaw.push(...raw);
+      await redis.del(processingKey);
     }
+    // If renamenx returned 0, processingKey already exists (stale from crashed flush)
+    // We will handle that below
   } catch (err) {
-    if (err.message.includes('no such key')) {
-      return false;
+    if (!err.message.includes('no such key')) throw err;
+    // originalKey didn't exist — that's fine, no new messages
+  }
+
+  // Also recover any stale processing key that survived a previous crash
+  try {
+    const staleRaw = await redis.lrange(processingKey, 0, -1);
+    if (staleRaw.length > 0) {
+      allRaw.push(...staleRaw);
+      await redis.del(processingKey);
     }
-    throw err;
-  }
+  } catch (_) {}
 
-  // 2. Read all messages
-  const rawMessages = await redis.lrange(processingKey, 0, -1);
-  if (rawMessages.length === 0) {
-    await redis.del(processingKey);
-    return false;
-  }
+  if (allRaw.length === 0) return false;
 
-  const messages = rawMessages.map((msg) => JSON.parse(msg));
+  const messages = allRaw
+    .map(msg => { try { return JSON.parse(msg); } catch { return null; } })
+    .filter(Boolean);
 
-  // 3. Bulk Insert into DB
+  if (messages.length === 0) return false;
+
+  // Deduplicate by message id before inserting
+  const unique = [...new Map(messages.map(m => [m.id, m])).values()];
+
+  // Bulk Insert into DB (ON CONFLICT DO NOTHING = idempotent)
   const values = [];
   const queryParams = [];
   let paramIndex = 1;
 
-  for (const msg of messages) {
+  for (const msg of unique) {
     values.push(`($${paramIndex++}, $${paramIndex++}, $${paramIndex++}, $${paramIndex++}, $${paramIndex++}, $${paramIndex++})`);
     queryParams.push(msg.id, msg.ticket_id, msg.sender_id, msg.sender_role, msg.body, msg.created_at);
   }
@@ -55,15 +72,11 @@ export const forceFlushTranscript = async (ticketId) => {
     queryParams
   );
 
-  // 4. Update the ticket's updated_at timestamp to indicate activity
-  //    and clear waiting_on_customer since someone sent a message!
+  // Update ticket and clear cache
   await query(
     `UPDATE tickets SET updated_at = NOW(), waiting_on_customer = false WHERE id = $1`,
     [ticketId]
   );
-
-  // 5. Clean up the processing key and invalidate cache (M11.T3)
-  await redis.del(processingKey);
   await redis.del(`cache:ticket_history:${ticketId}`);
   return true;
 };
