@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { Renderer, Program, Mesh, Triangle } from 'ogl';
 import './LandingPage.css';
@@ -413,6 +413,8 @@ const GradientWaves = ({
 };
 
 export default function LandingPage() {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
   return (
     <div className="landing-page">
       <main className="landing-main">
@@ -448,13 +450,19 @@ export default function LandingPage() {
               <span className="landing-brand-name">Queue<span className="landing-brand-name-accent">Desk</span></span>
             </div>
 
-            <nav className="landing-nav" aria-label="Main navigation">
-              <a href="#features">Features</a>
-              <a href="#workflow">Workflow</a>
-            </nav>
+            <button className="landing-mobile-menu-btn" onClick={() => setIsMenuOpen(!isMenuOpen)}>
+              ☰
+            </button>
 
-            <div className="landing-header-actions">
-              <Link to="/register" className="btn btn-primary btn-sm landing-signup-btn">Sign up</Link>
+            <div className={`landing-nav-container ${isMenuOpen ? 'is-open' : ''}`}>
+              <nav className="landing-nav" aria-label="Main navigation">
+                <a href="#features" onClick={() => setIsMenuOpen(false)}>Features</a>
+                <a href="#workflow" onClick={() => setIsMenuOpen(false)}>Workflow</a>
+              </nav>
+
+              <div className="landing-header-actions">
+                <Link to="/register" className="btn btn-primary btn-sm landing-signup-btn">Sign up</Link>
+              </div>
             </div>
           </div>
         </header>

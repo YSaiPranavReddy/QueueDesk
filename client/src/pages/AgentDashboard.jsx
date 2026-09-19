@@ -30,6 +30,7 @@ export default function AgentDashboard() {
   const [verifyBanner, setVerifyBanner] = useState(true);
   const [resendingVerify, setResendingVerify] = useState(false);
   const [verifyMsg, setVerifyMsg] = useState('');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const handleResendVerify = async () => {
     setResendingVerify(true);
@@ -270,8 +271,24 @@ export default function AgentDashboard() {
           >×</button>
         </div>
       )}
+      {/* ── Mobile Header ── */}
+      <div className="dash-mobile-header">
+        <div className="dash-logo" style={{ borderBottom: 'none', padding: 0, margin: 0 }}>
+          <img src="/logo.png" alt="QueueDesk" className="landing-logo-image" style={{ width: 24, height: 24 }} />
+          <span className="landing-brand-name" style={{ fontSize: '1.25rem' }}>Queue<span className="landing-brand-name-accent">Desk</span></span>
+        </div>
+        <button className="dash-mobile-menu-btn" onClick={() => setIsSidebarOpen(true)}>
+          ☰
+        </button>
+      </div>
+
+      {/* ── Mobile Overlay ── */}
+      <div 
+        className={`dash-overlay ${isSidebarOpen ? 'is-visible' : ''}`} 
+        onClick={() => setIsSidebarOpen(false)}
+      ></div>
       {/* ── Sidebar ── */}
-      <aside className="dash-sidebar">
+      <aside className={`dash-sidebar ${isSidebarOpen ? 'is-open' : ''}`}>
         {/* Logo */}
         <div className="dash-logo">
           <img src="/logo.png" alt="QueueDesk" className="landing-logo-image" />
@@ -311,7 +328,7 @@ export default function AgentDashboard() {
           </button>
           <button
             className={`dash-nav-item ${activeTab === 'chats' ? 'active' : ''}`}
-            onClick={() => { setActiveTab('chats'); setActiveTicketId(null); }}
+            onClick={() => { setActiveTab('chats'); setActiveTicketId(null); setIsSidebarOpen(false); }}
           >
             <span>💬</span> My Chats
             {totalUnread > 0 && (
@@ -327,7 +344,7 @@ export default function AgentDashboard() {
           </button>
           <button
             className={`dash-nav-item ${activeTab === 'on-hold' ? 'active' : ''}`}
-            onClick={() => { setActiveTab('on-hold'); setActiveTicketId(null); }}
+            onClick={() => { setActiveTab('on-hold'); setActiveTicketId(null); setIsSidebarOpen(false); }}
           >
             <span>⏸️</span> On Hold
             {myOnHoldTickets.length > 0 && (
@@ -337,7 +354,7 @@ export default function AgentDashboard() {
           {user?.role === 'admin' && (
             <button
               className={`dash-nav-item ${activeTab === 'analytics' ? 'active' : ''}`}
-              onClick={() => setActiveTab('analytics')}
+              onClick={() => { setActiveTab('analytics'); setIsSidebarOpen(false); }}
             >
               <span>📈</span> Analytics
             </button>

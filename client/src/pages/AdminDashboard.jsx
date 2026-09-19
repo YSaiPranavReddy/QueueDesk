@@ -14,6 +14,7 @@ export default function AdminDashboard() {
   const [agents,  setAgents]  = useState([]);
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -39,16 +40,33 @@ export default function AdminDashboard() {
 
   return (
     <div className="dash-layout">
-      <aside className="dash-sidebar">
+      {/* ── Mobile Header ── */}
+      <div className="dash-mobile-header">
+        <div className="dash-logo" style={{ borderBottom: 'none', padding: 0, margin: 0 }}>
+          <img src="/logo.png" alt="QueueDesk logo" className="landing-logo-image" style={{ width: 24, height: 24 }} />
+          <span className="landing-brand-name">Queue<span className="landing-brand-name-accent">Desk</span></span>
+        </div>
+        <button className="dash-mobile-menu-btn" onClick={() => setIsSidebarOpen(true)}>
+          ☰
+        </button>
+      </div>
+
+      {/* ── Mobile Overlay ── */}
+      <div 
+        className={`dash-overlay ${isSidebarOpen ? 'is-visible' : ''}`} 
+        onClick={() => setIsSidebarOpen(false)}
+      ></div>
+
+      <aside className={`dash-sidebar ${isSidebarOpen ? 'is-open' : ''}`}>
         <div className="dash-logo">
           <img src="/logo.png" alt="QueueDesk logo" className="landing-logo-image" />
           <span className="landing-brand-name">Queue<span className="landing-brand-name-accent">Desk</span></span>
         </div>
         <nav className="dash-nav">
-          <a href="#" className="dash-nav-item active"><span>📊</span> Overview</a>
-          <a href="#" className="dash-nav-item"><span>🧑‍💼</span> Agents</a>
-          <a href="#" className="dash-nav-item"><span>🎫</span> All Tickets</a>
-          <a href="#" className="dash-nav-item"><span>⚙️</span> Settings</a>
+          <a href="#" className="dash-nav-item active" onClick={() => setIsSidebarOpen(false)}><span>📊</span> Overview</a>
+          <a href="#" className="dash-nav-item" onClick={() => setIsSidebarOpen(false)}><span>🧑‍💼</span> Agents</a>
+          <a href="#" className="dash-nav-item" onClick={() => setIsSidebarOpen(false)}><span>🎫</span> All Tickets</a>
+          <a href="#" className="dash-nav-item" onClick={() => setIsSidebarOpen(false)}><span>⚙️</span> Settings</a>
         </nav>
         <div className="dash-user">
           <div className="dash-user-avatar admin-avatar">{user?.name?.[0]?.toUpperCase()}</div>

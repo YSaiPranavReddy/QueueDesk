@@ -22,6 +22,7 @@ export default function CustomerDashboard() {
   const [verifyBanner, setVerifyBanner] = useState(true);
   const [resendingVerify, setResendingVerify] = useState(false);
   const [verifyMsg, setVerifyMsg] = useState('');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const handleResendVerify = async () => {
     setResendingVerify(true);
@@ -257,8 +258,26 @@ export default function CustomerDashboard() {
           >×</button>
         </div>
       )}
+
+      {/* ── Mobile Header ── */}
+      <div className="dash-mobile-header">
+        <div className="dash-logo" style={{ borderBottom: 'none', padding: 0, margin: 0 }}>
+          <img src="/logo.png" alt="QueueDesk" className="landing-logo-image" style={{ width: 24, height: 24 }} />
+          <span className="landing-brand-name" style={{ fontSize: '1.25rem' }}>Queue<span className="landing-brand-name-accent">Desk</span></span>
+        </div>
+        <button className="dash-mobile-menu-btn" onClick={() => setIsSidebarOpen(true)}>
+          ☰
+        </button>
+      </div>
+
+      {/* ── Mobile Overlay ── */}
+      <div 
+        className={`dash-overlay ${isSidebarOpen ? 'is-visible' : ''}`} 
+        onClick={() => setIsSidebarOpen(false)}
+      ></div>
+
       {/* ── Sidebar ── */}
-      <aside className="dash-sidebar">
+      <aside className={`dash-sidebar ${isSidebarOpen ? 'is-open' : ''}`}>
         <div className="dash-logo">
           <img src="/logo.png" alt="QueueDesk" className="landing-logo-image" />
           <span className="landing-brand-name">Queue<span className="landing-brand-name-accent">Desk</span></span>
@@ -267,7 +286,7 @@ export default function CustomerDashboard() {
         <nav className="dash-nav">
           <button
             className={`dash-nav-item ${activeTab === 'tickets' ? 'active' : ''}`}
-            onClick={() => setActiveTab('tickets')}
+            onClick={() => { setActiveTab('tickets'); setIsSidebarOpen(false); }}
           >
             <span>🎫</span> My Tickets
             {tickets.length > 0 && (
@@ -276,7 +295,7 @@ export default function CustomerDashboard() {
           </button>
           <button
             className={`dash-nav-item ${activeTab === 'chats' ? 'active' : ''}`}
-            onClick={() => setActiveTab('chats')}
+            onClick={() => { setActiveTab('chats'); setIsSidebarOpen(false); }}
           >
             <span>💬</span> My Chats
             {totalUnread > 0 && (
