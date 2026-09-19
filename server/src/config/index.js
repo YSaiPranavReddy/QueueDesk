@@ -49,8 +49,11 @@ export const config = {
   },
 
   email: {
-    resendApiKey: required('RESEND_API_KEY'),
-    from: optional('EMAIL_FROM', 'QueueDesk <onboarding@resend.dev>'),
+    smtpHost: optional('SMTP_HOST', 'smtp-relay.brevo.com'),
+    smtpPort: parseInt(optional('SMTP_PORT', '587'), 10),
+    smtpUser: required('SMTP_USER'),
+    smtpPass: required('SMTP_PASS'),
+    from: optional('EMAIL_FROM', 'QueueDesk <hello@queuedesk.dev>'),
     adminEmail: optional('ADMIN_EMAIL', ''),
   },
 
