@@ -16,11 +16,11 @@ import crypto from 'crypto';
 import { config } from '../config/index.js';
 import { createError } from '../middleware/errorHandler.js';
 import { authenticateToken } from '../middleware/auth.js';
-import { findUserByEmail, findUserById, createUser } from '../models/user.js';
+import { findUserByEmail, findUserById, createUser, markUserEmailVerified } from '../models/user.js';
 import { query } from '../config/db.js';
 import redis from '../config/redis.js';
 import { notificationQueue } from '../workers/notificationWorker.js';
-import { templatePasswordReset } from '../utils/emailTemplates.js';
+import { templatePasswordReset, templateEmailVerification } from '../utils/emailTemplates.js';
 
 const router = Router();
 
@@ -118,13 +118,32 @@ router.post('/register', async (req, res, next) => {
     const passwordHash = await bcrypt.hash(password, 12);
     const user = await createUser({ email, passwordHash, name, role });
 
+    // Send verification email (fire-and-forget — don't block registration)
+    try {
+      const rawToken  = crypto.randomBytes(32).toString('hex');
+      const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+      await redis.setex(`email_verify:${tokenHash}`, 24 * 60 * 60, user.id); // 24h TTL
+      const verifyUrl = `${config.frontendUrl}/verify-email?token=${rawToken}`;
+      const template = templateEmailVerification({ name: user.name, verifyUrl });
+      await notificationQueue.add('email', {
+        to: user.email,
+        subject: template.subject,
+        text: template.text,
+        html: template.html,
+        userId: user.id,
+        eventType: 'email_verification',
+      }, { attempts: 3, backoff: { type: 'exponential', delay: 2000 } });
+    } catch (emailErr) {
+      console.error('[Auth] Failed to send verification email:', emailErr.message);
+    }
+
     const accessToken = signAccessToken(user);
     await issueRefreshToken(res, user);
 
     res.status(201).json({
       success: true,
       accessToken,
-      user: { id: user.id, name: user.name, email: user.email, role: user.role },
+      user: { id: user.id, name: user.name, email: user.email, role: user.role, email_verified: false },
     });
   } catch (err) {
     next(err);
@@ -175,7 +194,7 @@ router.post('/login', loginLimiter, async (req, res, next) => {
     res.json({
       success: true,
       accessToken,
-      user: { id: user.id, name: user.name, email: user.email, role: user.role },
+      user: { id: user.id, name: user.name, email: user.email, role: user.role, email_verified: user.email_verified ?? false },
     });
   } catch (err) {
     next(err);
@@ -276,7 +295,7 @@ router.post('/logout', async (req, res, next) => {
 router.get('/me', authenticateToken, async (req, res, next) => {
   try {
     const { rows } = await query(
-      `SELECT id, name, email, role, notify_email FROM users WHERE id = $1`,
+      `SELECT id, name, email, role, notify_email, email_verified FROM users WHERE id = $1`,
       [req.user.id]
     );
     const user = rows[0];
@@ -309,6 +328,72 @@ router.patch('/me/preferences', authenticateToken, async (req, res, next) => {
   }
 });
 
+
+// ─── Email Verification ───────────────────────────────────────────────────────
+
+const resendVerifyLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 3,
+  message: { success: false, message: 'Too many verification requests. Try again in an hour.' },
+});
+
+/**
+ * GET /api/auth/verify-email?token=...
+ * Called when user clicks the link in their verification email.
+ */
+router.get('/verify-email', async (req, res, next) => {
+  try {
+    const { token } = req.query;
+    if (!token) return next(createError(400, 'Verification token is required'));
+
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+    const userId    = await redis.get(`email_verify:${tokenHash}`);
+
+    if (!userId) {
+      return next(createError(400, 'Invalid or expired verification link. Please request a new one.'));
+    }
+
+    await markUserEmailVerified(userId);
+    await redis.del(`email_verify:${tokenHash}`);
+
+    res.json({ success: true, message: 'Email verified successfully! You can now log in.' });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * POST /api/auth/resend-verification
+ * Resend a new verification email (for logged-in unverified users).
+ */
+router.post('/resend-verification', authenticateToken, resendVerifyLimiter, async (req, res, next) => {
+  try {
+    const user = await findUserById(req.user.id);
+    if (!user) return next(createError(404, 'User not found'));
+    if (user.email_verified) {
+      return res.json({ success: true, message: 'Your email is already verified.' });
+    }
+
+    const rawToken  = crypto.randomBytes(32).toString('hex');
+    const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+    await redis.setex(`email_verify:${tokenHash}`, 24 * 60 * 60, user.id);
+    const verifyUrl = `${config.frontendUrl}/verify-email?token=${rawToken}`;
+    const template  = templateEmailVerification({ name: user.name, verifyUrl });
+
+    await notificationQueue.add('email', {
+      to: user.email,
+      subject: template.subject,
+      text: template.text,
+      html: template.html,
+      userId: user.id,
+      eventType: 'email_verification',
+    }, { attempts: 3, backoff: { type: 'exponential', delay: 2000 } });
+
+    res.json({ success: true, message: 'Verification email sent! Please check your inbox.' });
+  } catch (err) {
+    next(err);
+  }
+});
 
 // ─── Forgot / Reset Password ──────────────────────────────────────────────────
 

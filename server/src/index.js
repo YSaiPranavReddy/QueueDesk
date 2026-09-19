@@ -96,7 +96,15 @@ app.use(errorHandler);
 server.listen(config.port, async () => {
   logger.info(`[Server] QueueDesk running on port ${config.port} (${config.nodeEnv}), Instance: ${process.env.INSTANCE_ID || process.env.PORT || '1'}`);
   await initSocket(server);
-  
+
+  // Idempotent schema migrations — safe to run on every start
+  try {
+    await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified BOOLEAN DEFAULT false`);
+    logger.info('[Migration] email_verified column ensured on users table');
+  } catch (err) {
+    logger.warn({ err }, '[Migration] Could not add email_verified column');
+  }
+
   const { startStatsWorker } = await import('./workers/statsWorker.js');
   startStatsWorker();
 });

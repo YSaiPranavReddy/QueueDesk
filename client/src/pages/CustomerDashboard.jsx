@@ -19,6 +19,21 @@ const STATUS_BADGE = {
 
 export default function CustomerDashboard() {
   const { user, setUser, logout } = useAuth();
+  const [verifyBanner, setVerifyBanner] = useState(true);
+  const [resendingVerify, setResendingVerify] = useState(false);
+  const [verifyMsg, setVerifyMsg] = useState('');
+
+  const handleResendVerify = async () => {
+    setResendingVerify(true);
+    try {
+      await authApi.resendVerification();
+      setVerifyMsg('Verification email sent! Check your inbox.');
+    } catch (e) {
+      setVerifyMsg(e.response?.data?.message || 'Failed to resend. Try again later.');
+    } finally {
+      setResendingVerify(false);
+    }
+  };
 
   const [tickets,  setTickets]  = useState([]);
   const [loading,  setLoading]  = useState(true);
@@ -210,6 +225,38 @@ export default function CustomerDashboard() {
 
   return (
     <div className="dash-layout">
+      {/* ── Email verification banner ── */}
+      {!user?.email_verified && verifyBanner && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, zIndex: 1000,
+          background: 'linear-gradient(90deg, #92400e, #78350f)',
+          borderBottom: '1px solid #d97706',
+          padding: '0.6rem 1.25rem',
+          display: 'flex', alignItems: 'center', gap: '0.75rem',
+          fontSize: '0.85rem', color: '#fef3c7',
+        }}>
+          <span>📧</span>
+          <span style={{ flex: 1 }}>
+            {verifyMsg || 'Please verify your email address to secure your account.'}
+          </span>
+          <button
+            onClick={handleResendVerify}
+            disabled={resendingVerify}
+            style={{
+              background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)',
+              color: '#fef3c7', padding: '0.25rem 0.75rem', borderRadius: '6px',
+              cursor: 'pointer', fontSize: '0.8rem', whiteSpace: 'nowrap',
+            }}
+          >
+            {resendingVerify ? 'Sending…' : 'Resend email'}
+          </button>
+          <button
+            onClick={() => setVerifyBanner(false)}
+            style={{ background: 'none', border: 'none', color: '#fef3c7', cursor: 'pointer', fontSize: '1.1rem', lineHeight: 1 }}
+            aria-label="Dismiss"
+          >×</button>
+        </div>
+      )}
       {/* ── Sidebar ── */}
       <aside className="dash-sidebar">
         <div className="dash-logo">

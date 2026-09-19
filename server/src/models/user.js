@@ -24,7 +24,7 @@ export const findUserByEmail = async (email) => {
  */
 export const findUserById = async (id) => {
   const { rows } = await query(
-    'SELECT id, email, name, role, notify_email, created_at FROM users WHERE id = $1',
+    'SELECT id, email, name, role, notify_email, email_verified, created_at FROM users WHERE id = $1',
     [id]
   );
   return rows[0] || null;
@@ -37,12 +37,19 @@ export const findUserById = async (id) => {
  */
 export const createUser = async ({ email, passwordHash, name, role = 'customer' }) => {
   const { rows } = await query(
-    `INSERT INTO users (email, password_hash, name, role)
-     VALUES ($1, $2, $3, $4)
-     RETURNING id, email, name, role, created_at`,
+    `INSERT INTO users (email, password_hash, name, role, email_verified)
+     VALUES ($1, $2, $3, $4, false)
+     RETURNING id, email, name, role, email_verified, created_at`,
     [email.toLowerCase().trim(), passwordHash, name, role]
   );
   return rows[0];
+};
+
+/**
+ * Mark a user's email as verified.
+ */
+export const markUserEmailVerified = async (userId) => {
+  await query('UPDATE users SET email_verified = true WHERE id = $1', [userId]);
 };
 
 /**
