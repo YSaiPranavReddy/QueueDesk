@@ -723,14 +723,9 @@ export default function AgentDashboard() {
 
         {/* ── ON-HOLD TAB ── */}
         {activeTab === 'on-hold' && (
-          <div style={{ display: 'flex', gap: '1rem', flexGrow: 1, minHeight: 0 }}>
+          <div className="chat-layout-container">
             {/* Sidebar */}
-            <div style={{
-              width: '280px', flexShrink: 0,
-              background: 'var(--bg-card)', border: '1px solid var(--border-subtle)',
-              borderRadius: 'var(--radius-lg)', overflowY: 'auto',
-              display: 'flex', flexDirection: 'column', padding: '0.875rem',
-            }}>
+            <div className="chat-layout-sidebar">
               <div className="chat-sidebar-section-label">On-Hold Tickets</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                 {myOnHoldTickets.length === 0
@@ -741,7 +736,7 @@ export default function AgentDashboard() {
             </div>
 
             {/* Chat area */}
-            <div style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+            <div className="chat-layout-main">
               {activeTicketId ? (
                 <div className="card" style={{ padding: 0, height: '100%', display: 'flex', flexDirection: 'column' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 1rem', borderBottom: '1px solid var(--border-subtle)' }}>
