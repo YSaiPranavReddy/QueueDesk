@@ -115,10 +115,16 @@ export const registerChatHandlers = (socket, io) => {
       };
 
       // 1. Buffer in Redis (M9 worker will batch-flush to DB)
-      await redis.rpush(bufferKey(ticketId), JSON.stringify(message));
-
-      // M11.T3: Invalidate message history cache
-      await redis.del(`cache:ticket_history:${ticketId}`);
+      try {
+        await redis.rpush(bufferKey(ticketId), JSON.stringify(message));
+        
+        // M11.T3: Invalidate message history cache
+        await redis.del(`cache:ticket_history:${ticketId}`);
+      } catch (redisErr) {
+        console.warn('[Chat] Redis is down! Falling back to direct DB write:', redisErr.message);
+        // Fallback: Save directly to Postgres so the message is never lost
+        await insertMessage(message);
+      }
 
       // 3. Broadcast to the ticket room (both customer and agent see it instantly)
       io.to(`ticket:${ticketId}`).emit('chat:message', { message });

@@ -107,6 +107,58 @@ server.listen(config.port, async () => {
 
   const { startStatsWorker } = await import('./workers/statsWorker.js');
   startStatsWorker();
-});
+// ── Graceful Shutdown ───────────────────────────────────────────────────────────
+const shutdown = async (signal) => {
+  logger.info(`[Server] Received ${signal}, starting graceful shutdown...`);
+
+  // 1. Stop accepting new HTTP and WebSocket connections
+  server.close(async () => {
+    logger.info('[Server] HTTP server stopped accepting new connections.');
+    
+    try {
+      // 2. Pause and gracefully close all background workers so jobs don't halt mid-execution
+      const { slaWorker } = await import('./workers/slaWorker.js');
+      const { reminderWorker } = await import('./workers/reminderWorker.js');
+      const { disconnectWorker } = await import('./workers/disconnectWorker.js');
+      const { autoCloseWorker } = await import('./workers/autoCloseWorker.js');
+      const { transcriptWorker } = await import('./workers/transcriptWorker.js');
+      const { notificationWorker } = await import('./workers/notificationWorker.js');
+
+      await Promise.allSettled([
+        slaWorker.close(),
+        reminderWorker.close(),
+        disconnectWorker.close(),
+        autoCloseWorker.close(),
+        transcriptWorker.close(),
+        notificationWorker.close()
+      ]);
+      logger.info('[Server] All background workers safely closed.');
+
+      // 3. Close Redis connections
+      await redis.quit();
+      logger.info('[Server] Redis connections closed.');
+
+      // 4. Close PostgreSQL pool
+      const pool = (await import('./config/db.js')).default;
+      await pool.end();
+      logger.info('[Server] PostgreSQL pool closed.');
+
+      logger.info('[Server] Graceful shutdown complete. Exiting.');
+      process.exit(0);
+    } catch (err) {
+      logger.error({ err }, '[Server] Error occurred during graceful shutdown.');
+      process.exit(1);
+    }
+  });
+
+  // Force exit if shutdown takes longer than 15 seconds
+  setTimeout(() => {
+    logger.error('[Server] Graceful shutdown timeout (15s). Forcing exit.');
+    process.exit(1);
+  }, 15000);
+};
+
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT',  () => shutdown('SIGINT'));
 
 export { server, app };
