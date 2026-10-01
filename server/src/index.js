@@ -107,6 +107,8 @@ server.listen(config.port, async () => {
 
   const { startStatsWorker } = await import('./workers/statsWorker.js');
   startStatsWorker();
+});
+
 // ── Graceful Shutdown ───────────────────────────────────────────────────────────
 const shutdown = async (signal) => {
   logger.info(`[Server] Received ${signal}, starting graceful shutdown...`);
@@ -161,4 +163,4 @@ const shutdown = async (signal) => {
 process.on('SIGTERM', () => shutdown('SIGTERM'));
 process.on('SIGINT',  () => shutdown('SIGINT'));
 
-export { server, app };
+export {server, app };
